@@ -18,6 +18,8 @@ struct PanelTheme: Identifiable, Equatable {
     let secondaryText: Color
     /// Brand / action colour.
     let primary: Color
+    /// The brand colour for small text: darker on light backgrounds, where the bright orange is too faint.
+    let primaryText: Color
     /// Paid / success.
     let positive: Color
     /// Due soon.
@@ -31,16 +33,16 @@ struct PanelTheme: Identifiable, Equatable {
     static let dark = PanelTheme(
         id: "dark", name: "Dark", isDark: true,
         background: Color(hex: 0x1C1C1E), section: Color(hex: 0x2A2A2D),
-        header: Color(hex: 0x8E8E93), text: .white, secondaryText: Color(hex: 0xA1A1A6),
-        primary: Brand.orange, positive: Color(hex: 0x30D158), warning: Color(hex: 0xFF9F0A), critical: Color(hex: 0xFF453A),
+        header: Color(hex: 0x9A9AA0), text: .white, secondaryText: Color(hex: 0xAEAEB4),
+        primary: Brand.orange, primaryText: Brand.orange, positive: Color(hex: 0x30D158), warning: Color(hex: 0xFF9F0A), critical: Color(hex: 0xFF453A),
         track: Color.white.opacity(0.12)
     )
 
     static let light = PanelTheme(
         id: "light", name: "Light", isDark: false,
         background: Color(hex: 0xFAF7F4), section: .white,
-        header: Color(hex: 0x86868B), text: Color(hex: 0x1D1D1F), secondaryText: Color(hex: 0x6E6E73),
-        primary: Brand.orange, positive: Color(hex: 0x28A745), warning: Color(hex: 0xE08600), critical: Color(hex: 0xFF3B30),
+        header: Color(hex: 0x6B6B70), text: Color(hex: 0x1D1D1F), secondaryText: Color(hex: 0x55555A),
+        primary: Brand.orange, primaryText: Color(hex: 0xC24600), positive: Color(hex: 0x28A745), warning: Color(hex: 0xE08600), critical: Color(hex: 0xFF3B30),
         track: Color.black.opacity(0.09)
     )
 

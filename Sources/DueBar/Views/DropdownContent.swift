@@ -53,7 +53,7 @@ struct DropdownContent: View {
             }
             .buttonStyle(.plain)
             .font(.system(size: 11.5, weight: .semibold))
-            .foregroundStyle(theme.primary)
+            .foregroundStyle(theme.primaryText)
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
         .cardBackground()
@@ -75,7 +75,7 @@ struct DropdownContent: View {
                 ProgressView().controlSize(.small)
             } else {
                 Button(tr("Update", "Perbarui")) { Task { await updater.update() } }
-                    .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primary)
+                    .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primaryText)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
@@ -111,7 +111,7 @@ private struct HomePage: View {
                             Text(tr("View All", "Lihat Semua"))
                             Image(systemName: "arrow.right").font(.system(size: 10, weight: .bold))
                         }
-                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primaryText)
                         .frame(maxWidth: .infinity, alignment: .trailing).padding(.horizontal, 4)
                     }
                     .buttonStyle(.plain)
@@ -135,7 +135,7 @@ private struct HomePage: View {
                             Text(agenda.dueSoon.count > items.count ? tr("View All (\(agenda.dueSoon.count))", "Lihat Semua (\(agenda.dueSoon.count))") : tr("View All", "Lihat Semua"))
                             Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold))
                         }
-                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primaryText)
                     }
                     .buttonStyle(.plain)
                 }
@@ -214,7 +214,7 @@ private struct OutstandingCard: View {
                     Text(outstanding.count == 1 ? tr("1 item", "1 item") : tr("\(outstanding.count) items", "\(outstanding.count) item"))
                     Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold))
                 }
-                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primaryText)
                 .padding(.horizontal, 10).padding(.vertical, 6.5)
                 .background(Capsule().fill(theme.primary.opacity(0.16)))
                 .fixedSize()
@@ -314,7 +314,7 @@ private struct ListPage: View {
                 .font(.system(size: 11, weight: page == value ? .semibold : .regular))
                 .padding(.horizontal, 8.5).padding(.vertical, 5)
                 .background(Capsule().fill(page == value ? theme.primary.opacity(0.18) : .clear))
-                .foregroundStyle(page == value ? theme.primary : theme.secondaryText)
+                .foregroundStyle(page == value ? theme.primaryText : theme.secondaryText)
         }
         .buttonStyle(.plain)
     }
@@ -382,7 +382,7 @@ struct UpcomingList: View {
                         Text(p.name).font(.system(size: 12.5)).foregroundStyle(theme.secondaryText).lineLimit(1)
                         Spacer()
                         Button(tr("Resume", "Lanjutkan")) { store.setPaused(p.id, false) }
-                            .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primary)
+                            .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primaryText)
                     }
                 }
             }
