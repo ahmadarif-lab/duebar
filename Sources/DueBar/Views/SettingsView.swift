@@ -163,7 +163,6 @@ private struct GeneralPane: View {
     @AppStorage(SettingsKey.theme) private var theme = PanelTheme.systemID
     @AppStorage(SettingsKey.defaultCurrency) private var currency = "IDR"
     @AppStorage(SettingsKey.showInDock) private var showInDock = false
-    @AppStorage(SettingsKey.horizonDays) private var horizon = 60
     @State private var loginItem = LoginItem.isEnabled
 
     private var currencyChoices: [String] {
@@ -172,14 +171,6 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Section(tr("Upcoming", "Mendatang")) {
-                Picker(tr("Upcoming list reaches", "Daftar mendatang sampai"), selection: $horizon) {
-                    Text(tr("30 days", "30 hari")).tag(30)
-                    Text(tr("60 days", "60 hari")).tag(60)
-                    Text(tr("90 days", "90 hari")).tag(90)
-                    Text(tr("1 year", "1 tahun")).tag(365)
-                }
-            }
             Section(tr("Appearance", "Tampilan")) {
                 Picker(tr("Theme", "Tema"), selection: $theme) {
                     Text(tr("System", "Sistem")).tag(PanelTheme.systemID)
@@ -482,7 +473,12 @@ private struct DataPane: View {
             if events.isEmpty {
                 emptyCard(query.isEmpty ? tr("Paid payments will show up here.", "Pembayaran yang sudah lunas muncul di sini.") : tr("No matches.", "Tidak ada yang cocok."))
             } else {
-                rows(Array(events.prefix(200)), id: \.id) { HistoryRow(event: $0) }
+                VStack(spacing: 6) {
+                    rows(Array(events.prefix(200)), id: \.id) { HistoryRow(event: $0) }
+                    if events.count > 200 {
+                        Text(tr("Showing the latest 200 of \(events.count) entries.", "Menampilkan 200 terbaru dari \(events.count) entri.")).font(.system(size: 11.5)).foregroundStyle(.secondary)
+                    }
+                }
             }
         } else {
             let list = payments(for: filter).filter { matches($0.name) }

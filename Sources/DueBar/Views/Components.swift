@@ -348,3 +348,15 @@ struct PillButton: View {
         .onHover { hovering = $0 }
     }
 }
+
+extension View {
+    /// Fades the last few points of a scroll area so a row cut off at the bottom reads as "more below".
+    func fadeBottomEdge(_ height: CGFloat = 16) -> some View {
+        mask(
+            VStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom).frame(height: height)
+            }
+        )
+    }
+}

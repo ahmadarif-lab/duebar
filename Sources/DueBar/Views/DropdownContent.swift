@@ -118,7 +118,7 @@ private struct HomePage: View {
                     Spacer()
                     Button(action: goAll) {
                         HStack(spacing: 3.5) {
-                            Text(tr("View All", "Lihat Semua"))
+                            Text(agenda.dueSoon.count > items.count ? tr("View All (\(agenda.dueSoon.count))", "Lihat Semua (\(agenda.dueSoon.count))") : tr("View All", "Lihat Semua"))
                             Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold))
                         }
                         .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
@@ -333,10 +333,12 @@ struct UpcomingList: View {
                     group(tr("Later", "Nanti"), agenda.later)
                     if !agenda.paused.isEmpty { pausedBox(agenda.paused) }
                 }
+                .padding(.bottom, 12)
             }
-            .scrollIndicators(.never)
+            .scrollIndicators(.automatic)
             .frame(maxHeight: 336)
             .fixedSize(horizontal: false, vertical: true)
+            .fadeBottomEdge()
         }
     }
 
@@ -512,11 +514,17 @@ struct HistoryList: View {
                             .cardBackground()
                         }
                     }
+                    if store.history.count > events.count {
+                        Text(tr("Showing the latest \(events.count). See everything under Settings → Data.", "Menampilkan \(events.count) terbaru. Lihat semuanya di Pengaturan → Data."))
+                            .font(.system(size: 11)).foregroundStyle(theme.secondaryText).multilineTextAlignment(.center).padding(.horizontal, 8)
+                    }
                 }
+                .padding(.bottom, 12)
             }
-            .scrollIndicators(.never)
+            .scrollIndicators(.automatic)
             .frame(maxHeight: 336)
             .fixedSize(horizontal: false, vertical: true)
+            .fadeBottomEdge()
         }
     }
 

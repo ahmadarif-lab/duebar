@@ -39,7 +39,8 @@ final class Store: ObservableObject {
 
     var agenda: Agenda {
         _ = dayTick
-        return Agenda.make(payments: ledger.allPayments, horizonDays: UserDefaults.standard.integer(forKey: SettingsKey.horizonDays))
+        // No cut-off: every active payment is listed (the list scrolls), so none disappears for being far away.
+        return Agenda.make(payments: ledger.allPayments, horizonDays: .max)
     }
 
     var summary: MonthSummary {

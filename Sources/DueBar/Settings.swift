@@ -11,7 +11,6 @@ enum SettingsKey {
     static let showInDock = "showInDock"
     static let syncEmail = "syncEmail"
     static let lastSync = "lastSync"
-    static let horizonDays = "horizonDays"
     static let autoCheckUpdates = "autoCheckUpdates"
 }
 
@@ -29,7 +28,6 @@ extension UserDefaults {
             SettingsKey.reminderMinute: 9 * 60,
             SettingsKey.notificationsOn: true,
             SettingsKey.showInDock: false,
-            SettingsKey.horizonDays: 60,
             SettingsKey.autoCheckUpdates: true,
         ])
     }
