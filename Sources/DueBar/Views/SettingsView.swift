@@ -189,7 +189,7 @@ private struct GeneralPane: View {
                     Text(tr("Totals are shown in this currency, and new payments start with it. Payments in another currency are converted at the latest exchange rate.",
                             "Total ditampilkan dalam mata uang ini dan pembayaran baru memakainya. Pembayaran dalam mata uang lain dikonversi dengan kurs terbaru."))
                     if let rates = rates.rates {
-                        Text(tr("Rates updated \(rates.fetchedAt.formatted(.relative(presentation: .named))).", "Kurs diperbarui \(rates.fetchedAt.formatted(.relative(presentation: .named)))."))
+                        Text(tr("Rates updated \(DueText.ago(rates.fetchedAt)).", "Kurs diperbarui \(DueText.ago(rates.fetchedAt))."))
                     } else if rates.failed {
                         Text(tr("Couldn't fetch exchange rates; they are fetched again when needed.", "Gagal mengambil kurs; akan dicoba lagi saat diperlukan."))
                     }
@@ -202,6 +202,7 @@ private struct GeneralPane: View {
                     set: { LoginItem.setEnabled($0); loginItem = LoginItem.isEnabled }
                 ))
                 Toggle(tr("Show icon in Dock while a window is open", "Tampilkan ikon di Dock saat jendela terbuka"), isOn: $showInDock)
+                    .onChange(of: showInDock) { _, _ in Windows.applyDockPolicy() }
             }
             UpdatesSection()
             Text(tr("Language changes apply the next time you open a window.", "Perubahan bahasa berlaku saat jendela dibuka lagi."))
@@ -362,7 +363,7 @@ private struct AccountPane: View {
     private var status: some View {
         switch sync.state {
         case .syncing: HStack(spacing: 6) { ProgressView().controlSize(.small); Text(tr("Syncing…", "Menyinkronkan…")) }
-        case .idle: Text(sync.lastSync.map { tr("Synced \($0.formatted(.relative(presentation: .named)))", "Tersinkron \($0.formatted(.relative(presentation: .named)))") } ?? tr("Ready", "Siap"))
+        case .idle: Text(sync.lastSync.map { tr("Synced \(DueText.ago($0))", "Tersinkron \(DueText.ago($0))") } ?? tr("Ready", "Siap"))
         case .failed(let why): Text(why).foregroundStyle(.red).lineLimit(2)
         case .signedOut: Text("—")
         }
@@ -573,6 +574,7 @@ private struct ManagedPaymentRow: View {
             } else {
                 VStack(alignment: .trailing, spacing: 1) {
                     Text(Money.format(payment.amount, currency: payment.currency)).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     if let converted = convertedText { Text(converted).font(.system(size: 11.5)).foregroundStyle(.secondary).monospacedDigit() }
                 }
             }
@@ -649,6 +651,7 @@ private struct RowIconButton: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 
@@ -666,6 +669,7 @@ private struct HistoryRow: View {
             }
             Spacer(minLength: 8)
             Text(Money.format(event.amount, currency: event.currency)).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                .lineLimit(1).fixedSize(horizontal: true, vertical: false)
             if canUndo {
                 RowIconButton(symbol: "arrow.uturn.backward", help: tr("Undo", "Urungkan")) { store.undo(event.id) }
             } else {

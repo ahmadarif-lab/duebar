@@ -98,10 +98,24 @@ private struct HomePage: View {
         let hasPayments = !agenda.isEmpty
         VStack(spacing: 12) {
             HeaderRow(agenda: agenda, close: close)
-            OutstandingCard(outstanding: agenda.outstanding(in: UserDefaults.standard.mainCurrency, rates: rates.rates), goAll: goAll)
+            // A total of nothing is noise: the card only appears when something is outstanding.
+            let outstanding = agenda.outstanding(in: UserDefaults.standard.mainCurrency, rates: rates.rates)
+            if outstanding.count > 0 { OutstandingCard(outstanding: outstanding, goAll: goAll) }
             if hasPayments {
                 upcoming(agenda)
-                if agenda.dueSoon.isEmpty { CaughtUpCard(next: agenda.next) }
+                if agenda.dueSoon.isEmpty {
+                    CaughtUpCard(next: agenda.next)
+                    // Nothing is due soon, so there is no "Due soon" header to carry the link to the rest.
+                    Button(action: goAll) {
+                        HStack(spacing: 4) {
+                            Text(tr("View All", "Lihat Semua"))
+                            Image(systemName: "arrow.right").font(.system(size: 10, weight: .bold))
+                        }
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
+                        .frame(maxWidth: .infinity, alignment: .trailing).padding(.horizontal, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
             } else {
                 EmptyCard(close: close)
             }
@@ -128,8 +142,8 @@ private struct HomePage: View {
                 .padding(.horizontal, 3.5)
                 VStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        PaymentRow(item: item, markPaid: markPaid, close: close)
-                        if index < items.count - 1 { Divider().overlay(theme.track).padding(.leading, 50.5) }
+                        PaymentRow(item: item, compact: true, markPaid: markPaid, close: close)
+                        if index < items.count - 1 { Divider().overlay(theme.track).padding(.horizontal, 7) }
                     }
                 }
                 .padding(.horizontal, 3.5).padding(.vertical, 1.5)
@@ -152,7 +166,6 @@ private struct HeaderRow: View {
                 subtitle.font(.system(size: 12))
             }
             Spacer()
-            IconButton(symbol: "gearshape", help: tr("Settings", "Pengaturan"), size: 28) { close(); Windows.showSettings() }
         }
         .padding(.horizontal, 3.5)
     }
@@ -181,16 +194,11 @@ private struct OutstandingCard: View {
     var body: some View {
         Button(action: goAll) {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Brand.gradient)
-                    Image(systemName: "creditcard.fill").font(.system(size: 19.5, weight: .semibold)).foregroundStyle(.white)
-                }
-                .frame(width: 43.5, height: 43.5)
                 VStack(alignment: .leading, spacing: 1.5) {
-                    Text(tr("Total Outstanding", "Total Tertunggak")).font(.system(size: 12.5)).foregroundStyle(theme.secondaryText)
+                    Text(tr("Total Outstanding", "Total Tertunggak")).font(.system(size: 12.5, weight: .medium)).foregroundStyle(theme.secondaryText)
                     Text(Money.formatTotal(outstanding.total, currency: outstanding.currency))
-                        .font(.system(size: 21, weight: .bold, design: .rounded)).monospacedDigit()
-                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .font(.system(size: 26, weight: .bold, design: .rounded)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.45)
                     if outstanding.includesConverted {
                         Text(tr("Includes conversions", "Termasuk konversi"))
                             .font(.system(size: 11)).foregroundStyle(theme.secondaryText).lineLimit(1)
@@ -209,8 +217,9 @@ private struct OutstandingCard: View {
                 .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
                 .padding(.horizontal, 10).padding(.vertical, 6.5)
                 .background(Capsule().fill(theme.primary.opacity(0.16)))
+                .fixedSize()
             }
-            .padding(12)
+            .padding(13)
             .background(RoundedRectangle(cornerRadius: 17, style: .continuous).fill(theme.primary.opacity(theme.isDark ? 0.16 : 0.12)))
         }
         .buttonStyle(.plain)
@@ -389,7 +398,7 @@ struct UpcomingList: View {
     private func total(_ items: [AgendaItem]) -> String? {
         let main = UserDefaults.standard.mainCurrency
         let sum = Money.total(items.map { ($0.payment.amount, $0.payment.currency) }, in: main, rates: rates.rates)
-        return sum.complete ? Money.formatTotal(sum.total, currency: main) : "\(items.count)"
+        return sum.complete ? Money.formatTotal(sum.total, currency: main) : (items.count == 1 ? tr("1 item", "1 item") : tr("\(items.count) items", "\(items.count) item"))
     }
 }
 
@@ -398,6 +407,8 @@ struct PaymentRow: View {
     @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
     var item: AgendaItem
+    /// The home list: no category tile or icons, the amount leads. The detail pages keep them.
+    var compact = false
     var markPaid: (String) -> Void
     var close: () -> Void
     @State private var hovering = false
@@ -405,11 +416,13 @@ struct PaymentRow: View {
     var body: some View {
         let p = item.payment
         HStack(spacing: 10) {
-            CategoryBadge(category: p.category, size: 38)
+            if !compact { CategoryBadge(category: p.category, size: 38) }
             VStack(alignment: .leading, spacing: 2.5) {
                 Text(p.name).font(.system(size: 13.5, weight: .semibold)).lineLimit(1)
                 HStack(spacing: 4) {
-                    Image(systemName: p.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 11)).foregroundStyle(theme.primary)
+                    if !compact {
+                        Image(systemName: p.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 11)).foregroundStyle(theme.primary)
+                    }
                     Text(DueText.relative(item.status)).foregroundStyle(statusColor)
                     Text("·").foregroundStyle(theme.secondaryText)
                     Text(DueText.date(item.due)).foregroundStyle(theme.secondaryText)
@@ -421,15 +434,20 @@ struct PaymentRow: View {
                 IconButton(symbol: "checkmark.circle", help: tr("Mark as paid", "Tandai lunas"), tint: theme.positive, size: 27) { markPaid(p.id) }
                 menu
             } else {
+                // The amount keeps its full width (the name gives way first) and never wraps.
                 VStack(alignment: .trailing, spacing: 1) {
-                    Text(Money.format(p.amount, currency: p.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+                    Text(Money.format(p.amount, currency: p.currency))
+                        .font(.system(size: compact ? 15 : 13, weight: .semibold, design: compact ? .rounded : .default)).monospacedDigit()
+                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     if let converted = convertedText(p) {
                         Text(converted).font(.system(size: 11)).foregroundStyle(theme.secondaryText).monospacedDigit()
+                            .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     }
                 }
+                .layoutPriority(1)
             }
         }
-        .padding(.vertical, 7.5).padding(.horizontal, 6.5)
+        .padding(.vertical, compact ? 9 : 7.5).padding(.horizontal, 6.5)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? theme.track.opacity(0.6) : .clear))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
@@ -492,14 +510,14 @@ struct HistoryList: View {
                 .font(.system(size: 12)).foregroundStyle(theme.secondaryText)
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
-            let groups = Dictionary(grouping: events) { String($0.resolvedAt.formatted(.dateTime.year().month(.twoDigits))) }
+            let months = store.ledger.historyByMonth(limit: 80)
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(groups.keys.sorted(by: >), id: \.self) { key in
-                        let rows = groups[key] ?? []
+                    ForEach(months) { month in
+                        let rows = month.events
                         VStack(spacing: 5) {
                             HStack {
-                                Text(Self.monthTitle(rows[0].resolvedAt)).font(.system(size: 12.5, weight: .semibold))
+                                Text(Self.monthTitle(month.date)).font(.system(size: 12.5, weight: .semibold))
                                 Spacer()
                                 if let total = total(rows) { Text(total).font(.system(size: 11, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit() }
                             }
@@ -636,7 +654,7 @@ private struct FooterMenu: View {
             Label(tr("Sync failed", "Sinkron gagal"), systemImage: "exclamationmark.icloud")
                 .font(.system(size: 11)).foregroundStyle(theme.critical).help(why)
         default:
-            Label(sync.lastSync.map { tr("Synced \($0.formatted(.relative(presentation: .named)))", "Tersinkron \($0.formatted(.relative(presentation: .named)))") } ?? tr("Synced", "Tersinkron"),
+            Label(sync.lastSync.map { tr("Synced \(DueText.ago($0))", "Tersinkron \(DueText.ago($0))") } ?? tr("Synced", "Tersinkron"),
                   systemImage: "checkmark.icloud")
                 .font(.system(size: 11)).foregroundStyle(theme.secondaryText)
         }

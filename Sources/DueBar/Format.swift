@@ -8,7 +8,8 @@ enum Money {
         let f = NumberFormatter()
         f.numberStyle = .currency
         f.currencyCode = currency
-        f.locale = appLocale
+        // Rupiah always reads "Rp 1.250.000", whatever the UI language: id_ID drops the space, en_US writes "IDR".
+        f.locale = currency == "IDR" ? Locale(identifier: "en_ID") : appLocale
         let noMinor: Set<String> = ["IDR", "JPY", "KRW", "VND", "CLP", "ISK", "HUF"]
         let fractional = (amount as NSDecimalNumber).doubleValue.truncatingRemainder(dividingBy: 1) != 0
         let digits = noMinor.contains(currency) && !fractional ? 0 : (noMinor.contains(currency) ? 2 : nil)
@@ -24,22 +25,6 @@ enum Money {
         var source = amount
         NSDecimalRound(&value, &source, noMinor.contains(currency) ? 0 : 2, .plain)
         return format(value, currency: currency)
-    }
-
-    /// Short form for the menu bar: "Rp350K", "Rp1,2M"; small amounts stay exact.
-    static func compact(_ amount: Decimal, currency: String) -> String {
-        let value = (amount as NSDecimalNumber).doubleValue
-        guard abs(value) >= 10_000 else { return format(amount, currency: currency) }
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = currency
-        f.locale = appLocale
-        let symbol = f.currencySymbol ?? currency
-        let (scaled, suffix) = abs(value) >= 1_000_000 ? (value / 1_000_000, "M") : (value / 1000, "K")
-        let n = NumberFormatter()
-        n.locale = appLocale
-        n.maximumFractionDigits = scaled < 10 ? 1 : 0
-        return symbol + (n.string(from: NSNumber(value: scaled)) ?? "\(scaled)") + suffix
     }
 
     /// Adds amounts in different currencies as one amount in `currency` (see ExchangeRates.total).
@@ -63,6 +48,15 @@ enum DueText {
             if d == 1 { return tr("Tomorrow", "Besok") }
             return tr("In \(d) days", "\(d) hari lagi")
         }
+    }
+
+    /// "now", "21 minutes ago" in the app's language, not the system's.
+    static func ago(_ date: Date) -> String {
+        let f = RelativeDateTimeFormatter()
+        f.locale = appLocale
+        f.unitsStyle = .full
+        f.dateTimeStyle = .named
+        return f.localizedString(for: date, relativeTo: Date())
     }
 
     static func date(_ day: DayStamp) -> String {

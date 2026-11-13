@@ -43,11 +43,6 @@ final class Store: ObservableObject {
         return Agenda.make(payments: ledger.allPayments, horizonDays: .max)
     }
 
-    var summary: MonthSummary {
-        _ = dayTick
-        return MonthSummary.make(ledger: ledger)
-    }
-
     var history: [PaymentEvent] { ledger.history }
     var finished: [Payment] { ledger.allPayments.filter(\.archived).sorted { $0.name.lowercased() < $1.name.lowercased() } }
 

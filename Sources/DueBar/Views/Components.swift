@@ -22,44 +22,6 @@ struct Dropdown: View {
     }
 }
 
-struct SectionBox<Content: View>: View {
-    @Environment(\.panelTheme) private var theme
-    var title: String?
-    var titleColor: Color?
-    var trailing: String?
-    @ViewBuilder var content: Content
-
-    init(_ title: String? = nil, color: Color? = nil, trailing: String? = nil, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.titleColor = color
-        self.trailing = trailing
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if title != nil || trailing != nil {
-                HStack(alignment: .firstTextBaseline) {
-                    if let title {
-                        Text(title.uppercased())
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(titleColor ?? theme.header)
-                    }
-                    Spacer(minLength: 8)
-                    if let trailing {
-                        Text(trailing).font(.system(size: 11.5, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit()
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            content
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(theme.section))
-    }
-}
-
 struct CategoryBadge: View {
     var category: PaymentCategory
     var size: CGFloat = 30
@@ -97,6 +59,7 @@ struct IconButton: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 

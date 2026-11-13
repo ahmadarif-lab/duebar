@@ -7,6 +7,8 @@ import SwiftUI
 @MainActor
 enum Snapshot {
     static func run(into dir: URL, context: AppContext) {
+        // DUEBAR_SNAPSHOT_LANG=en|id renders in that language (the debug binary's own defaults only).
+        if let lang = ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_LANG"] { UserDefaults.standard.set(lang, forKey: SettingsKey.language) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         // Fixed sample rates: snapshots never touch the network.
         context.rates.setForPreview(ExchangeRates(rates: ["IDR": 16150, "EUR": Decimal(string: "0.92")!, "SGD": Decimal(string: "1.3")!]))
