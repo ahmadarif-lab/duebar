@@ -274,6 +274,8 @@ enum Windows {
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView:
                 SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
+            // With full-size content the content view is the whole frame, so the frame is the design size.
+            window.setFrame(NSRect(origin: .zero, size: SettingsView.size), display: false)
             window.center()
             track(window)
             settings = window

@@ -38,6 +38,17 @@ enum Snapshot {
             }
         }
         write(strip, scheme: .dark, to: dir.appendingPathComponent("menubar-icons.png"))
+
+        // The real Settings window (its frame, not just the view), on the Reminders tab.
+        Windows.showSettings(tab: .reminders)
+        if let window = NSApp.windows.first(where: { $0.title == tr("DueBar Settings", "Pengaturan DueBar") }), let view = window.contentView {
+            view.layoutSubtreeIfNeeded()
+            print("settings window frame \(window.frame.size) content \(view.frame.size)")
+            if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("settings-window.png"))
+            }
+        }
         NSApp.terminate(nil)
     }
 

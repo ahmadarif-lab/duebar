@@ -94,7 +94,7 @@ struct SettingsView: View {
             SidebarIllustration().frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
-        .frame(width: 178)
+        .frame(width: 196)
         .background(Color.primary.opacity(0.03))
     }
 
@@ -118,8 +118,8 @@ private struct SidebarItem: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: tab.symbol).font(.system(size: 16, weight: .medium)).frame(width: 22)
-                Text(tab.title).font(.system(size: 15, weight: selected ? .semibold : .regular))
-                Spacer()
+                Text(tab.title).font(.system(size: 15, weight: selected ? .semibold : .regular)).lineLimit(1)
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .foregroundStyle(selected ? Color.white : Color.primary)
