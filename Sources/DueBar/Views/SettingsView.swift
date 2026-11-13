@@ -153,9 +153,7 @@ private struct NotificationsPane: View {
 
 private struct AccountPane: View {
     @EnvironmentObject var sync: SyncService
-    @AppStorage(SettingsKey.serverURL) private var server = Sync.defaultServer
     @State private var confirmDelete = false
-    @State private var showAdvanced = false
 
     var body: some View {
         Form {
@@ -212,11 +210,6 @@ private struct AccountPane: View {
                             Button(tr("Delete cloud data", "Hapus data cloud"), role: .destructive) { Task { _ = await sync.deleteAccount() } }
                         } message: { Text(tr("This removes your account and synced payments from the server and signs out every device. Data on this Mac is kept.", "Akun dan pembayaran di server dihapus dan semua perangkat keluar. Data di Mac ini tetap ada.")) }
                 }
-            }
-            DisclosureGroup(tr("Advanced", "Lanjutan"), isExpanded: $showAdvanced) {
-                TextField(tr("Server URL", "URL server"), text: $server)
-                    .disabled(sync.isSignedIn)
-                if sync.isSignedIn { Text(tr("Sign out to change the server.", "Keluar dulu untuk mengganti server.")).font(.caption).foregroundStyle(.secondary) }
             }
         }
         .formStyle(.grouped)

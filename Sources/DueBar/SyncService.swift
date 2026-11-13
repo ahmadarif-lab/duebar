@@ -5,6 +5,15 @@ import Foundation
 
 enum Sync {
     static let defaultServer = "https://duebar-api.ahmadarif.id"
+
+    /// The server the app talks to. Fixed: it receives the Google ID token and the payments,
+    /// so it is not a setting. `DUEBAR_SERVER_URL` overrides it for local testing only, and
+    /// only for HTTPS or a loopback address.
+    static var server: String {
+        guard let override = ProcessInfo.processInfo.environment["DUEBAR_SERVER_URL"], let url = URL(string: override),
+              url.scheme == "https" || ["127.0.0.1", "localhost", "::1"].contains(url.host ?? "") else { return defaultServer }
+        return override
+    }
 }
 
 /// Talks to the DueBar API: signs in with a Google ID token, then keeps the
@@ -48,7 +57,7 @@ final class SyncService: ObservableObject {
     var isSignedIn: Bool { session != nil }
 
     private var client: SyncClient? {
-        SyncClient(server: UserDefaults.standard.string(forKey: SettingsKey.serverURL) ?? Sync.defaultServer)
+        SyncClient(server: Sync.server)
     }
 
     // MARK: Account
