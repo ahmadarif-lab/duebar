@@ -7,12 +7,12 @@ struct Dropdown: View {
     @Environment(\.colorScheme) private var colorScheme
     var close: () -> Void
     var initialPage: DropdownContent.Page = .home
-    static let width: CGFloat = 400
+    static let width: CGFloat = 330
 
     var body: some View {
         let theme = PanelTheme.resolve(themeID, colorScheme: colorScheme)
         DropdownContent(close: close, initialPage: initialPage)
-            .padding(14)
+            .padding(10)
             .frame(width: Self.width)
             .background(theme.background)
             .foregroundStyle(theme.text)
@@ -227,8 +227,8 @@ private struct CardBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(theme.section))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(theme.track, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(theme.section))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(theme.track, lineWidth: 1))
             .shadow(color: .black.opacity(theme.isDark ? 0 : 0.04), radius: 6, y: 2)
     }
 }
