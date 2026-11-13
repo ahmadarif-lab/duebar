@@ -44,30 +44,10 @@ struct PanelTheme: Identifiable, Equatable {
         track: Color.black.opacity(0.09)
     )
 
-    static let presets: [PanelTheme] = [
-        dark, light,
-        PanelTheme(
-            id: "midnight", name: "Midnight", isDark: true,
-            background: Color(hex: 0x0E1533), section: Color(hex: 0x19224A),
-            header: Color(hex: 0x4A86FF), text: .white, secondaryText: Color(hex: 0x9AA6D0),
-            primary: Color(hex: 0x2F6BFF), positive: Color(hex: 0x3DDC97), warning: Color(hex: 0xFFB020), critical: Color(hex: 0xFF5C7A),
-            track: Color.white.opacity(0.12)
-        ),
-        PanelTheme(
-            id: "forest", name: "Forest", isDark: true,
-            background: Color(hex: 0x0E1C16), section: Color(hex: 0x172E24),
-            header: Color(hex: 0x5BD69A), text: .white, secondaryText: Color(hex: 0x93B8A5),
-            primary: Color(hex: 0x34C759), positive: Color(hex: 0x7CE3A7), warning: Color(hex: 0xFFD60A), critical: Color(hex: 0xFF6B5E),
-            track: Color.white.opacity(0.12)
-        ),
-        PanelTheme(
-            id: "sunset", name: "Sunset", isDark: true,
-            background: Color(hex: 0x200F1A), section: Color(hex: 0x331A2A),
-            header: Color(hex: 0xFF8A65), text: .white, secondaryText: Color(hex: 0xC99AAE),
-            primary: Color(hex: 0xFF9F0A), positive: Color(hex: 0x5BD69A), warning: Color(hex: 0xFFD60A), critical: Color(hex: 0xFF375F),
-            track: Color.white.opacity(0.12)
-        ),
-    ]
+    /// Light and Dark; "system" follows the Mac and is not a preset.
+    static let presets: [PanelTheme] = [dark, light]
+
+    static let validIDs: Set<String> = [systemID, dark.id, light.id]
 
     static func resolve(_ id: String, colorScheme: ColorScheme) -> PanelTheme {
         if let preset = presets.first(where: { $0.id == id }) { return preset }
@@ -77,11 +57,10 @@ struct PanelTheme: Identifiable, Equatable {
 
 private struct PanelThemeKey: EnvironmentKey { static let defaultValue = PanelTheme.dark }
 
-private struct ThemeAccentKey: EnvironmentKey { static let defaultValue = Color.accentColor }
+private struct ThemeAccentKey: EnvironmentKey { static let defaultValue = Brand.orange }
 
 extension EnvironmentValues {
-    /// Accent for custom-drawn controls (chips, avatar): the theme's colour, or the Mac's own
-    /// accent when the theme follows the system.
+    /// Accent for custom-drawn controls (chips, avatar): the brand orange.
     var themeAccent: Color {
         get { self[ThemeAccentKey.self] }
         set { self[ThemeAccentKey.self] = newValue }
@@ -101,45 +80,20 @@ extension Color {
 
 // MARK: - Themed windows
 
-/// Applies the chosen theme to a whole window (Settings, the payment editor): window mode
-/// (light/dark), accent colour and background. "Follow system" leaves the native look alone.
+/// Applies the chosen theme (System, Light or Dark) to a window: its light/dark mode and the
+/// brand accent for controls. Everything else is the native look.
 struct ThemedWindowContent: ViewModifier {
     @AppStorage(SettingsKey.theme) private var themeID = PanelTheme.systemID
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
-        let theme = PanelTheme.resolve(themeID, colorScheme: colorScheme)
-        if themeID == PanelTheme.systemID {
-            content.environment(\.panelTheme, theme)
-        } else {
-            content
-                .environment(\.panelTheme, theme)
-                .environment(\.themeAccent, theme.primary)
-                .tint(theme.primary)
-                .background(theme.background)
-                .preferredColorScheme(theme.isDark ? .dark : .light)
-        }
-    }
-}
-
-/// Form chrome that follows the theme: its background and its grouped rows.
-struct ThemedForm: ViewModifier {
-    @AppStorage(SettingsKey.theme) private var themeID = PanelTheme.systemID
-    @Environment(\.panelTheme) private var theme
-
-    func body(content: Content) -> some View {
-        if themeID == PanelTheme.systemID {
-            content
-        } else {
-            content
-                .scrollContentBackground(.hidden)
-                .background(theme.background)
-                .listRowBackground(theme.section)
-        }
+        let forced: ColorScheme? = themeID == PanelTheme.light.id ? .light : (themeID == PanelTheme.dark.id ? .dark : nil)
+        content
+            .environment(\.themeAccent, Brand.orange)
+            .tint(Brand.orange)
+            .preferredColorScheme(forced)
     }
 }
 
 extension View {
     func themedWindow() -> some View { modifier(ThemedWindowContent()) }
-    func themedForm() -> some View { modifier(ThemedForm()) }
 }

@@ -142,7 +142,6 @@ struct PaymentForm: View {
                 }
             }
             .formStyle(.grouped)
-            .themedForm()
 
             Divider()
             HStack {

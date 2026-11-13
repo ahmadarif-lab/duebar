@@ -29,6 +29,10 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
 
 extension UserDefaults {
     static func registerDueBarDefaults() {
+        // The coloured presets (Midnight, Forest, Sunset) are gone; anyone who picked one follows the system.
+        if let id = standard.string(forKey: SettingsKey.theme), !PanelTheme.validIDs.contains(id) {
+            standard.set(PanelTheme.systemID, forKey: SettingsKey.theme)
+        }
         standard.register(defaults: [
             SettingsKey.theme: PanelTheme.systemID,
             SettingsKey.language: "system",
