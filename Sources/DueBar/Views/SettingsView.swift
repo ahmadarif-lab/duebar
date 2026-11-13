@@ -38,7 +38,7 @@ struct SettingsView: View {
     @ObservedObject private var router = SettingsRouter.shared
     @State private var showAbout = false
 
-    static let size = CGSize(width: 680, height: 640)
+    static let size = CGSize(width: 560, height: 540)
 
     init(initialTab: SettingsTab? = nil) {
         if let initialTab { SettingsRouter.shared.tab = initialTab }
@@ -61,28 +61,28 @@ struct SettingsView: View {
 
     // The traffic lights sit in the top-left corner (full-size content window), so the title starts after them.
     private var header: some View {
-        HStack(spacing: 12) {
-            BrandMark(size: 36)
+        HStack(spacing: 10) {
+            BrandMark(size: 30)
             VStack(alignment: .leading, spacing: 1) {
-                Text("DueBar").font(.system(size: 15.5, weight: .bold))
-                Text(tr("Settings", "Pengaturan")).font(.system(size: 13)).foregroundStyle(.secondary)
+                Text("DueBar").font(.system(size: 11, weight: .bold))
+                Text(tr("Settings", "Pengaturan")).font(.system(size: 9)).foregroundStyle(.secondary)
             }
             Spacer()
             Button { showAbout.toggle() } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "info.circle.fill")
                     Text(tr("About", "Tentang"))
                 }
-                .font(.system(size: 13.5, weight: .medium))
-                .padding(.horizontal, 14).padding(.vertical, 7)
+                .font(.system(size: 9.5, weight: .medium))
+                .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(Capsule().fill(Color.primary.opacity(0.06)))
                 .overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showAbout, arrowEdge: .bottom) { AboutView() }
         }
-        .padding(.leading, 96).padding(.trailing, 18)
-        .frame(height: 56)
+        .padding(.leading, 80.5).padding(.trailing, 15)
+        .frame(height: 47)
     }
 
     private var sidebar: some View {
@@ -93,8 +93,8 @@ struct SettingsView: View {
             Spacer()
             SidebarIllustration().frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
-        .frame(width: 196)
+        .padding(12)
+        .frame(width: 150)
         .background(Color.primary.opacity(0.03))
     }
 
@@ -116,15 +116,15 @@ private struct SidebarItem: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: tab.symbol).font(.system(size: 16, weight: .medium)).frame(width: 22)
-                Text(tab.title).font(.system(size: 15, weight: selected ? .semibold : .regular)).lineLimit(1)
+            HStack(spacing: 8.5) {
+                Image(systemName: tab.symbol).font(.system(size: 11.5, weight: .medium)).frame(width: 22)
+                Text(tab.title).font(.system(size: 10.5, weight: selected ? .semibold : .regular)).lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12).padding(.vertical, 10)
+            .padding(.horizontal, 10).padding(.vertical, 8.5)
             .foregroundStyle(selected ? Color.white : Color.primary)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(selected ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(hovering ? Color.primary.opacity(0.06) : Color.clear))
             )
             .shadow(color: selected ? Brand.orange.opacity(0.3) : .clear, radius: 5, y: 2)
@@ -138,39 +138,39 @@ private struct SidebarItem: View {
 private struct SidebarIllustration: View {
     var body: some View {
         ZStack {
-            Circle().fill(Brand.orange.opacity(0.10)).frame(width: 118, height: 118).offset(x: -6, y: 4)
-            Circle().fill(Brand.orange.opacity(0.13)).frame(width: 66, height: 66).offset(x: -22, y: 40)
+            Circle().fill(Brand.orange.opacity(0.10)).frame(width: 99, height: 99).offset(x: -6, y: 4)
+            Circle().fill(Brand.orange.opacity(0.13)).frame(width: 55.5, height: 55.5).offset(x: -22, y: 40)
             Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 54, weight: .regular))
+                .font(.system(size: 38, weight: .regular))
                 .foregroundStyle(Brand.orange.opacity(0.55))
                 .offset(x: 6, y: -2)
         }
-        .frame(width: 130, height: 120)
+        .frame(width: 109, height: 101)
         .accessibilityHidden(true)
     }
 }
 
 private struct AboutView: View {
     var body: some View {
-        VStack(spacing: 8) {
-            BrandMark(size: 64)
-            Text("DueBar").font(.system(size: 20, weight: .bold)).padding(.top, 4)
+        VStack(spacing: 6.5) {
+            BrandMark(size: 54)
+            Text("DueBar").font(.system(size: 14.5, weight: .bold)).padding(.top, 3.5)
             Text(tr("Version \(Updater.currentVersion ?? "dev")", "Versi \(Updater.currentVersion ?? "dev")"))
-                .font(.system(size: 12.5)).foregroundStyle(.secondary)
+                .font(.system(size: 9)).foregroundStyle(.secondary)
             Text(tr("A menu bar payment reminder.", "Pengingat pembayaran di menu bar."))
-                .font(.system(size: 13)).multilineTextAlignment(.center).padding(.top, 2)
-            Divider().padding(.vertical, 6)
+                .font(.system(size: 9)).multilineTextAlignment(.center).padding(.top, 1.5)
+            Divider().padding(.vertical, 5)
             VStack(alignment: .leading, spacing: 6) {
                 Link(tr("Website", "Situs"), destination: URL(string: "https://apps.ahmadarif.id/duebar/")!)
                 Link(tr("Source code", "Kode sumber"), destination: URL(string: "https://github.com/ahmadarif-lab/duebar")!)
                 Link(tr("Privacy Policy", "Kebijakan Privasi"), destination: URL(string: "https://apps.ahmadarif.id/duebar/privacy/")!)
                 Link(tr("Terms of Service", "Syarat & Ketentuan"), destination: URL(string: "https://apps.ahmadarif.id/duebar/terms/")!)
             }
-            .font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading)
-            Text("© 2026 Ahmad Arif · MIT License").font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 8)
+            .font(.system(size: 9)).frame(maxWidth: .infinity, alignment: .leading)
+            Text("© 2026 Ahmad Arif · MIT License").font(.system(size: 9)).foregroundStyle(.secondary).padding(.top, 6.5)
         }
-        .padding(20)
-        .frame(width: 270)
+        .padding(17)
+        .frame(width: 240)
     }
 }
 
@@ -225,6 +225,7 @@ private struct GeneralPane: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+        .controlSize(.small)
     }
 }
 
@@ -255,7 +256,7 @@ private struct NotificationsPane: View {
                 }
             }
             Section(tr("Defaults for new payments", "Bawaan untuk pembayaran baru")) {
-                HStack(spacing: 6) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
                     ForEach([0, 1, 2, 3, 7, 14], id: \.self) { d in chip(d) }
                 }
                 DatePicker(tr("Remind at", "Ingatkan pukul"), selection: Binding(
@@ -271,6 +272,7 @@ private struct NotificationsPane: View {
             }
         }
         .formStyle(.grouped)
+        .controlSize(.small)
         .task { status = await AppContext.shared.notifier.authorizationStatus() }
     }
 
@@ -285,8 +287,9 @@ private struct NotificationsPane: View {
             offsetsRaw = s.sorted().map(String.init).joined(separator: ",")
         } label: {
             Text(label).font(.system(size: 11.5, weight: isOn ? .semibold : .regular))
-                .lineLimit(1).fixedSize()
-                .padding(.horizontal, 8).padding(.vertical, 5)
+                .lineLimit(1).minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 6).padding(.vertical, 5)
                 .background(Capsule().fill(isOn ? accent : Color.secondary.opacity(0.15)))
                 .foregroundStyle(isOn ? Color.white : Color.primary)
         }
@@ -368,6 +371,7 @@ private struct AccountPane: View {
             }
         }
         .formStyle(.grouped)
+        .controlSize(.small)
     }
 
     @ViewBuilder
