@@ -198,17 +198,14 @@ private struct AccountPane: View {
                                 "Data tetap di Mac ini sampai kamu masuk. Setelah masuk, data diunggah ke ruang pribadimu; DueBar hanya menerima nama, email, dan foto profil dari Google."))
                             .font(.callout).foregroundStyle(.secondary)
                         HStack {
-                            Button {
+                            GoogleSignInButton(title: tr("Sign in with Google", "Masuk dengan Google")) {
                                 Task { await sync.signIn() }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    if sync.signingIn { ProgressView().controlSize(.small) } else { Image(systemName: "person.crop.circle.badge.checkmark") }
-                                    Text(tr("Sign in with Google", "Masuk dengan Google"))
-                                }
                             }
-                            .controlSize(.large).buttonStyle(.borderedProminent)
                             .disabled(sync.signingIn || !GoogleAuth.isConfigured)
-                            if sync.signingIn { Text(tr("Finish in your browser…", "Selesaikan di browser…")).font(.callout).foregroundStyle(.secondary) }
+                            if sync.signingIn {
+                                ProgressView().controlSize(.small)
+                                Text(tr("Finish in your browser…", "Selesaikan di browser…")).font(.callout).foregroundStyle(.secondary)
+                            }
                         }
                         if !GoogleAuth.isConfigured {
                             Label(tr("This build has no Google client ID yet.", "Build ini belum punya Google client ID."), systemImage: "info.circle")

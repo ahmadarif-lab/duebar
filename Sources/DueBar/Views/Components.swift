@@ -126,3 +126,58 @@ struct AccountAvatar: View {
         .accessibilityHidden(true)
     }
 }
+
+// MARK: - Google sign-in branding
+
+/// Google's "G" mark (multicolour) and the sign-in button built from it, following Google's
+/// branding guidelines: the logo stays unaltered, the button is a neutral dark or light
+/// surface with a thin outline and the words "Sign in with Google".
+enum GoogleBrand {
+    private static let svg = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    """
+
+    static let logo: NSImage = NSImage(data: Data(svg.utf8)) ?? NSImage()
+}
+
+struct GoogleLogo: View {
+    var size: CGFloat = 18
+
+    var body: some View {
+        Image(nsImage: GoogleBrand.logo)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+    }
+}
+
+struct GoogleSignInButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isEnabled) private var isEnabled
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        let dark = colorScheme == .dark
+        Button(action: action) {
+            HStack(spacing: 10) {
+                GoogleLogo(size: 18)
+                Text(title).font(.system(size: 14, weight: .medium))
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .foregroundStyle(dark ? Color(hex: 0xE3E3E3) : Color(hex: 0x1F1F1F))
+            .background(Capsule().fill(dark ? Color(hex: 0x131314) : .white))
+            .overlay(Capsule().strokeBorder(dark ? Color(hex: 0x8E918F) : Color(hex: 0x747775), lineWidth: 1))
+            .opacity(isEnabled ? 1 : 0.45)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+}

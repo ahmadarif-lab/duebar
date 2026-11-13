@@ -425,8 +425,11 @@ struct FooterBar: View {
             Button {
                 close(); Windows.showSettings(tab: .account)
             } label: {
-                Label(tr("Sign in with Google", "Masuk dengan Google"), systemImage: "person.crop.circle")
-                    .font(.system(size: 11.5)).foregroundStyle(theme.secondaryText)
+                HStack(spacing: 7) {
+                    GoogleLogo(size: 15)
+                    Text(tr("Sign in with Google", "Masuk dengan Google")).font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(theme.text)
             }.buttonStyle(.plain)
         }
     }
