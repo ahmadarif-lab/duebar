@@ -263,14 +263,17 @@ enum Windows {
         SettingsRouter.shared.tab = tab
         if settings == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 560, height: 600),
-                styleMask: [.titled, .closable, .miniaturizable],
+                contentRect: NSRect(origin: .zero, size: SettingsView.size),
+                styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                 backing: .buffered, defer: false
             )
             window.title = tr("DueBar Settings", "Pengaturan DueBar")
-                window.isReleasedWhenClosed = false
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.isMovableByWindowBackground = true
+            window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView:
-                SettingsView().environmentObject(context.store).environmentObject(context.sync).preferredColorScheme(.dark))
+                SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
             window.center()
             track(window)
             settings = window

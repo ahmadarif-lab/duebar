@@ -21,7 +21,7 @@ enum Snapshot {
             let sample = context.store.ledger.allPayments.first { $0.name == "Listrik PLN" }
             write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
             for (name, tab) in [("general", SettingsTab.general), ("account", .account)] {
-                write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).preferredColorScheme(.dark), scheme: .dark,
+                write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).themedWindow(), scheme: scheme,
                       to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
             }
         }

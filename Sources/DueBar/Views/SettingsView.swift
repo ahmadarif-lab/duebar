@@ -4,7 +4,25 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UserNotifications
 
-enum SettingsTab: Hashable { case general, reminders, account }
+enum SettingsTab: Hashable, CaseIterable {
+    case general, reminders, account
+
+    var title: String {
+        switch self {
+        case .general: return tr("General", "Umum")
+        case .reminders: return tr("Reminders", "Pengingat")
+        case .account: return tr("Account", "Akun")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .general: return "gearshape"
+        case .reminders: return "bell"
+        case .account: return "person"
+        }
+    }
+}
 
 /// Which tab the Settings window shows. Shared so other parts of the app (the "Sign in" link
 /// in the dropdown) can open it on a given tab, even while the window is already open.
@@ -18,19 +36,141 @@ struct SettingsView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var sync: SyncService
     @ObservedObject private var router = SettingsRouter.shared
+    @State private var showAbout = false
+
+    static let size = CGSize(width: 680, height: 640)
 
     init(initialTab: SettingsTab? = nil) {
         if let initialTab { SettingsRouter.shared.tab = initialTab }
     }
 
     var body: some View {
-        TabView(selection: $router.tab) {
-            GeneralPane().tabItem { Label(tr("General", "Umum"), systemImage: "gearshape") }.tag(SettingsTab.general)
-            NotificationsPane().tabItem { Label(tr("Reminders", "Pengingat"), systemImage: "bell") }.tag(SettingsTab.reminders)
-            AccountPane().tabItem { Label(tr("Account", "Akun"), systemImage: "person.crop.circle") }.tag(SettingsTab.account)
+        VStack(spacing: 0) {
+            header
+            Divider()
+            HStack(spacing: 0) {
+                sidebar
+                Divider()
+                pane.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .frame(width: 560, height: 600)
-        .padding(.top, 12)
+        .frame(width: Self.size.width, height: Self.size.height)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .ignoresSafeArea(.container, edges: .top)
+    }
+
+    // The traffic lights sit in the top-left corner (full-size content window), so the title starts after them.
+    private var header: some View {
+        HStack(spacing: 12) {
+            BrandMark(size: 36)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("DueBar").font(.system(size: 15.5, weight: .bold))
+                Text(tr("Settings", "Pengaturan")).font(.system(size: 13)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button { showAbout.toggle() } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                    Text(tr("About", "Tentang"))
+                }
+                .font(.system(size: 13.5, weight: .medium))
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(Capsule().fill(Color.primary.opacity(0.06)))
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showAbout, arrowEdge: .bottom) { AboutView() }
+        }
+        .padding(.leading, 96).padding(.trailing, 18)
+        .frame(height: 56)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(SettingsTab.allCases, id: \.self) { tab in
+                SidebarItem(tab: tab, selected: router.tab == tab) { router.tab = tab }
+            }
+            Spacer()
+            SidebarIllustration().frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .frame(width: 178)
+        .background(Color.primary.opacity(0.03))
+    }
+
+    @ViewBuilder
+    private var pane: some View {
+        switch router.tab {
+        case .general: GeneralPane()
+        case .reminders: NotificationsPane()
+        case .account: AccountPane()
+        }
+    }
+}
+
+private struct SidebarItem: View {
+    var tab: SettingsTab
+    var selected: Bool
+    var action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: tab.symbol).font(.system(size: 16, weight: .medium)).frame(width: 22)
+                Text(tab.title).font(.system(size: 15, weight: selected ? .semibold : .regular))
+                Spacer()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .foregroundStyle(selected ? Color.white : Color.primary)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(selected ? AnyShapeStyle(Brand.gradient) : AnyShapeStyle(hovering ? Color.primary.opacity(0.06) : Color.clear))
+            )
+            .shadow(color: selected ? Brand.orange.opacity(0.3) : .clear, radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+}
+
+/// A faded calendar-and-clock in the sidebar's corner.
+private struct SidebarIllustration: View {
+    var body: some View {
+        ZStack {
+            Circle().fill(Brand.orange.opacity(0.10)).frame(width: 118, height: 118).offset(x: -6, y: 4)
+            Circle().fill(Brand.orange.opacity(0.13)).frame(width: 66, height: 66).offset(x: -22, y: 40)
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 54, weight: .regular))
+                .foregroundStyle(Brand.orange.opacity(0.55))
+                .offset(x: 6, y: -2)
+        }
+        .frame(width: 130, height: 120)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct AboutView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            BrandMark(size: 64)
+            Text("DueBar").font(.system(size: 20, weight: .bold)).padding(.top, 4)
+            Text(tr("Version \(Updater.currentVersion ?? "dev")", "Versi \(Updater.currentVersion ?? "dev")"))
+                .font(.system(size: 12.5)).foregroundStyle(.secondary)
+            Text(tr("A menu bar payment reminder.", "Pengingat pembayaran di menu bar."))
+                .font(.system(size: 13)).multilineTextAlignment(.center).padding(.top, 2)
+            Divider().padding(.vertical, 6)
+            VStack(alignment: .leading, spacing: 6) {
+                Link(tr("Website", "Situs"), destination: URL(string: "https://apps.ahmadarif.id/duebar/")!)
+                Link(tr("Source code", "Kode sumber"), destination: URL(string: "https://github.com/ahmadarif-lab/duebar")!)
+                Link(tr("Privacy Policy", "Kebijakan Privasi"), destination: URL(string: "https://apps.ahmadarif.id/duebar/privacy/")!)
+                Link(tr("Terms of Service", "Syarat & Ketentuan"), destination: URL(string: "https://apps.ahmadarif.id/duebar/terms/")!)
+            }
+            .font(.system(size: 13)).frame(maxWidth: .infinity, alignment: .leading)
+            Text("© 2026 Ahmad Arif · MIT License").font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 8)
+        }
+        .padding(20)
+        .frame(width: 270)
     }
 }
 
@@ -60,11 +200,10 @@ private struct GeneralPane: View {
             }
             Section(tr("Appearance", "Tampilan")) {
                 Picker(tr("Theme", "Tema"), selection: $theme) {
-                    Text(tr("Follow system", "Ikuti sistem")).tag(PanelTheme.systemID)
-                    ForEach(PanelTheme.presets) { Text($0.name).tag($0.id) }
+                    Text(tr("System", "Sistem")).tag(PanelTheme.systemID)
+                    Text(tr("Light", "Terang")).tag(PanelTheme.light.id)
+                    Text(tr("Dark", "Gelap")).tag(PanelTheme.dark.id)
                 }
-                Text(tr("The theme colours the menu bar dropdown and the payment editor. Settings always stay dark.", "Tema mewarnai dropdown menubar dan form pembayaran. Pengaturan selalu gelap."))
-                    .font(.caption).foregroundStyle(.secondary)
                 Picker(tr("Language", "Bahasa"), selection: $language) {
                     Text(tr("Follow system", "Ikuti sistem")).tag("system")
                     Text("English").tag("en")
@@ -313,41 +452,41 @@ private struct UpdatesSection: View {
     @AppStorage(SettingsKey.autoCheckUpdates) private var auto = true
 
     var body: some View {
-        Section(tr("Updates", "Pembaruan")) {
+        Section {
             LabeledContent(tr("Version", "Versi")) { Text(Updater.currentVersion ?? tr("Development build", "Build pengembangan")) }
             Toggle(tr("Automatically check for updates", "Cek pembaruan otomatis"), isOn: $auto)
-            HStack {
-                status
+        } header: {
+            Text(tr("Updates", "Pembaruan"))
+        } footer: {
+            HStack(spacing: 8) {
+                Circle().fill(status.color).frame(width: 8, height: 8)
+                Text(status.text).foregroundStyle(.secondary)
                 Spacer()
                 if updater.isUpdating {
                     ProgressView().controlSize(.small)
                 } else if let release = updater.availableUpdate {
                     Button(tr("Update to v\(release.version)", "Perbarui ke v\(release.version)")) { Task { await updater.update() } }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.borderedProminent).controlSize(.regular)
                 } else {
                     Button(tr("Check for Updates", "Cek Pembaruan")) { Task { await updater.check() } }
+                        .buttonStyle(.bordered).controlSize(.regular)
                         .disabled(updater.isChecking || Updater.currentVersion == nil)
                 }
             }
+            .font(.system(size: 12.5))
+            .padding(.top, 4)
         }
     }
 
-    @ViewBuilder
-    private var status: some View {
-        if let progress = updater.progressText {
-            Text(progress).foregroundStyle(.secondary)
-        } else if let error = updater.errorMessage {
-            Text(error).foregroundStyle(.red).lineLimit(2)
-        } else if let release = updater.availableUpdate {
-            Text(tr("v\(release.version) is available.", "v\(release.version) tersedia.")).foregroundStyle(.secondary)
-        } else if updater.checkFailed {
-            Text(tr("Couldn't check for updates.", "Gagal memeriksa pembaruan.")).foregroundStyle(.orange)
-        } else if updater.isChecking {
-            Text(tr("Checking…", "Memeriksa…")).foregroundStyle(.secondary)
-        } else if updater.lastChecked != nil {
-            Text(updater.noReleases ? tr("No releases yet.", "Belum ada rilis.") : tr("DueBar is up to date.", "DueBar sudah versi terbaru.")).foregroundStyle(.secondary)
-        } else {
-            Text(Updater.currentVersion == nil ? tr("Updates are off in development builds.", "Pembaruan nonaktif di build pengembangan.") : "").foregroundStyle(.secondary)
+    private var status: (text: String, color: Color) {
+        if let progress = updater.progressText { return (progress, .secondary) }
+        if let error = updater.errorMessage { return (error, .red) }
+        if let release = updater.availableUpdate { return (tr("v\(release.version) is available.", "v\(release.version) tersedia."), Brand.orange) }
+        if updater.checkFailed { return (tr("Couldn't check for updates.", "Gagal memeriksa pembaruan."), .orange) }
+        if updater.isChecking { return (tr("Checking…", "Memeriksa…"), .secondary) }
+        if updater.lastChecked != nil {
+            return updater.noReleases ? (tr("No releases yet.", "Belum ada rilis."), .secondary) : (tr("You're using the latest version.", "Kamu memakai versi terbaru."), .green)
         }
+        return Updater.currentVersion == nil ? (tr("Updates are off in development builds.", "Pembaruan nonaktif di build pengembangan."), .secondary) : ("", .clear)
     }
 }
