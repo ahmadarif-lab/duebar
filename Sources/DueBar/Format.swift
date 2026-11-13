@@ -107,3 +107,21 @@ extension PaymentCategory {
         }
     }
 }
+
+extension PaymentCategory {
+    /// One short word or two for the category chips, so every label fits at the same size.
+    var shortTitle: String {
+        switch self {
+        case .utilities: return tr("Utilities", "Listrik")
+        case .internet: return tr("Internet", "Internet")
+        case .subscription: return tr("Subscription", "Langganan")
+        case .rent: return tr("Housing", "Hunian")
+        case .loan: return tr("Loan", "Cicilan")
+        case .insurance: return tr("Insurance", "Asuransi")
+        case .tax: return tr("Tax", "Pajak")
+        case .credit: return tr("Card", "Kartu")
+        case .education: return tr("Education", "Sekolah")
+        case .other: return tr("Other", "Lainnya")
+        }
+    }
+}

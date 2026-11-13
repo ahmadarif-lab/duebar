@@ -86,7 +86,7 @@ struct PaymentForm: View {
                 }
 
                 Section(tr("Category", "Kategori")) {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 5), spacing: 6) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
                         ForEach(PaymentCategory.allCases, id: \.self) { c in categoryChip(c) }
                     }
                 }
@@ -207,11 +207,12 @@ struct PaymentForm: View {
         let selected = category == c
         let color = Color(hex: c.colorHex)
         return Button { category = c } label: {
-            VStack(spacing: 3) {
-                Image(systemName: c.symbol).font(.system(size: 15, weight: .semibold))
-                Text(c.title).font(.system(size: 9.5)).lineLimit(1).minimumScaleFactor(0.7)
+            VStack(spacing: 5) {
+                Image(systemName: c.symbol).font(.system(size: 16, weight: .semibold)).frame(height: 18)
+                Text(c.shortTitle).font(.system(size: 11.5, weight: .medium)).lineLimit(1).minimumScaleFactor(0.9)
             }
-            .frame(maxWidth: .infinity, minHeight: 50)
+            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity, minHeight: 54)
             .foregroundStyle(selected ? Color.white : color)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? color : color.opacity(0.14)))
         }
