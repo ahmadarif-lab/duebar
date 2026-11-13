@@ -57,13 +57,17 @@ struct PaymentForm: View {
     }
 
     /// Taller only for UI snapshots (DUEBAR_FORM_HEIGHT), so the whole form fits one picture.
-    private static var height: CGFloat { CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_FORM_HEIGHT"] ?? "") ?? 640) }
+    private static var height: CGFloat { CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_FORM_HEIGHT"] ?? "") ?? Self.size.height) }
     private var parsedAmount: Decimal? { AmountParser.parse(amountText, currency: currency) }
     private var isValid: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && (parsedAmount ?? -1) >= 0 }
     private var isEditing: Bool { original != nil }
 
+    static let size = CGSize(width: 420, height: 560)
+
     var body: some View {
         VStack(spacing: 0) {
+            header
+            Divider()
             Form {
                 Section {
                     TextField(tr("Name", "Nama"), text: $name, prompt: Text(tr("e.g. Electricity, Netflix, Car installment", "mis. Listrik PLN, Netflix, Cicilan motor")))
@@ -116,7 +120,7 @@ struct PaymentForm: View {
                 }
 
                 Section(tr("Reminders", "Pengingat")) {
-                    HStack(spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
                         ForEach([0, 1, 2, 3, 7, 14], id: \.self) { d in offsetChip(d) }
                     }
                     DatePicker(tr("Remind at", "Ingatkan pukul"), selection: $reminderTime, displayedComponents: .hourAndMinute)
@@ -142,6 +146,7 @@ struct PaymentForm: View {
                 }
             }
             .formStyle(.grouped)
+            .controlSize(.small)
 
             Divider()
             HStack {
@@ -157,12 +162,27 @@ struct PaymentForm: View {
                 Spacer()
                 Button(tr("Cancel", "Batal"), action: onDone).keyboardShortcut(.cancelAction)
                 Button(isEditing ? tr("Save", "Simpan") : tr("Add", "Tambah"), action: save)
+                    .buttonStyle(.borderedProminent).tint(Brand.orange)
                     .keyboardShortcut(.defaultAction).disabled(!isValid)
             }
-            .padding(14)
+            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .frame(width: 480, height: Self.height)
+        .frame(width: Self.size.width, height: Self.height)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .ignoresSafeArea(.container, edges: .top)
         .onAppear(perform: load)
+    }
+
+    // The traffic lights sit in the top-left corner (full-size content window).
+    private var header: some View {
+        HStack(spacing: 10) {
+            BrandMark(size: 30)
+            Text(isEditing ? tr("Edit payment", "Ubah pembayaran") : tr("New payment", "Pembayaran baru"))
+                .font(.system(size: 14.5, weight: .bold))
+            Spacer()
+        }
+        .padding(.leading, 80).padding(.trailing, 16)
+        .frame(height: 50)
     }
 
     private var currencyChoices: [String] {
@@ -179,7 +199,7 @@ struct PaymentForm: View {
                 Image(systemName: c.symbol).font(.system(size: 15, weight: .semibold))
                 Text(c.title).font(.system(size: 9.5)).lineLimit(1).minimumScaleFactor(0.7)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 7)
+            .frame(maxWidth: .infinity, minHeight: 50)
             .foregroundStyle(selected ? Color.white : color)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(selected ? color : color.opacity(0.14)))
         }
@@ -193,8 +213,9 @@ struct PaymentForm: View {
             if on { offsets.remove(days) } else { offsets.insert(days) }
         } label: {
             Text(label).font(.system(size: 11.5, weight: on ? .semibold : .regular))
-                .lineLimit(1).fixedSize()
-                .padding(.horizontal, 8).padding(.vertical, 5)
+                .lineLimit(1).minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 6).padding(.vertical, 5)
                 .background(Capsule().fill(on ? accent : Color.secondary.opacity(0.15)))
                 .foregroundStyle(on ? Color.white : Color.primary)
         }

@@ -49,6 +49,16 @@ enum Snapshot {
                 try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("settings-window.png"))
             }
         }
+        // The real editor window.
+        Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "Listrik PLN" })
+        if let window = NSApp.windows.first(where: { $0.title == tr("Edit Payment", "Ubah Pembayaran") }), let view = window.contentView {
+            view.layoutSubtreeIfNeeded()
+            print("editor window frame \(window.frame.size) content \(view.frame.size)")
+            if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("editor-window.png"))
+            }
+        }
         NSApp.terminate(nil)
     }
 

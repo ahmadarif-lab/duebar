@@ -197,8 +197,8 @@ final class DropdownPanel: NSPanel {
         var resize: (CGSize) -> Void = { _ in }
         let hosting = NSHostingView(rootView:
             content
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
                 .fixedSize()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                     DispatchQueue.main.async { resize(size) }
@@ -244,14 +244,19 @@ enum Windows {
         guard let context = AppContext.shared else { return }
         editor?.close()
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 640),
-            styleMask: [.titled, .closable],
+            contentRect: NSRect(origin: .zero, size: PaymentForm.size),
+            styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered, defer: false
         )
         window.title = payment == nil ? tr("New Payment", "Pembayaran Baru") : tr("Edit Payment", "Ubah Pembayaran")
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView:
             PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).themedWindow())
+        // With full-size content the content view is the whole frame.
+        window.setFrame(NSRect(origin: .zero, size: PaymentForm.size), display: false)
         window.center()
         track(window)
         editor = window
