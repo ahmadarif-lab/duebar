@@ -199,12 +199,13 @@ private struct AccountPane: View {
                             .font(.callout).foregroundStyle(.secondary)
                         HStack {
                             GoogleSignInButton(title: tr("Sign in with Google", "Masuk dengan Google")) {
-                                Task { await sync.signIn() }
+                                sync.startSignIn()
                             }
                             .disabled(sync.signingIn || !GoogleAuth.isConfigured)
                             if sync.signingIn {
                                 ProgressView().controlSize(.small)
                                 Text(tr("Finish in your browser…", "Selesaikan di browser…")).font(.callout).foregroundStyle(.secondary)
+                                Button(tr("Cancel", "Batal")) { sync.cancelSignIn() }
                             }
                         }
                         if !GoogleAuth.isConfigured {

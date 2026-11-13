@@ -1,7 +1,7 @@
 import AppKit
 import CryptoKit
+import DueKit
 import Foundation
-import Network
 
 /// Google sign-in for a desktop app: the system browser, PKCE and a
 /// loopback redirect (RFC 8252). The result is a Google ID token, which the
@@ -39,7 +39,7 @@ enum GoogleAuth {
         let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
         let state = randomString(24)
 
-        let server = LoopbackServer()
+        let server = LoopbackServer(page: { ok in GoogleAuth.page(ok: ok) })
         let port = try await server.start()
         let redirect = "http://127.0.0.1:\(port)"
 
@@ -56,7 +56,18 @@ enum GoogleAuth {
         ]
         NSWorkspace.shared.open(comps.url!)
 
-        let query = try await server.waitForRedirect(timeout: 180)
+        // Cancelling the surrounding task (the Cancel button, or the 5-minute limit set by the
+        // caller) ends the wait immediately: the loopback listener is closed and sign-in can be retried.
+        let query: [String: String]
+        do {
+            query = try await withTaskCancellationHandler {
+                try await server.waitForRedirect()
+            } onCancel: {
+                server.cancel()
+            }
+        } catch is LoopbackServer.Cancelled {
+            throw AuthError.cancelled
+        }
         guard query["state"] == state else { throw AuthError.exchangeFailed("state mismatch") }
         if let error = query["error"] { throw error == "access_denied" ? AuthError.cancelled : AuthError.denied(error) }
         guard let code = query["code"] else { throw AuthError.exchangeFailed("no code") }
@@ -84,90 +95,8 @@ enum GoogleAuth {
         _ = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
         return Data(bytes).base64URL.prefix(length).description
     }
-}
 
-private extension Data {
-    var base64URL: String {
-        base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-    }
-}
-
-/// A one-shot HTTP listener on 127.0.0.1 that catches Google's redirect.
-private final class LoopbackServer: @unchecked Sendable {
-    private var listener: NWListener?
-    private var continuation: CheckedContinuation<[String: String], Error>?
-    private var pending: Result<[String: String], Error>?
-    private let lock = NSLock()
-
-    func start() async throws -> UInt16 {
-        let params = NWParameters.tcp
-        params.requiredInterfaceType = .loopback
-        let listener = try NWListener(using: params, on: .any)
-        self.listener = listener
-        listener.newConnectionHandler = { [weak self] conn in self?.handle(conn) }
-        return try await withCheckedThrowingContinuation { cont in
-            var resumed = false
-            listener.stateUpdateHandler = { state in
-                guard !resumed else { return }
-                switch state {
-                case .ready: resumed = true; cont.resume(returning: listener.port?.rawValue ?? 0)
-                case .failed(let e): resumed = true; cont.resume(throwing: e)
-                default: break
-                }
-            }
-            listener.start(queue: .global())
-        }
-    }
-
-    func waitForRedirect(timeout: TimeInterval) async throws -> [String: String] {
-        defer { listener?.cancel() }
-        return try await withThrowingTaskGroup(of: [String: String].self) { group in
-            group.addTask { try await self.nextRedirect() }
-            group.addTask { try await Task.sleep(for: .seconds(timeout)); throw GoogleAuth.AuthError.cancelled }
-            let first = try await group.next()!
-            group.cancelAll()
-            return first
-        }
-    }
-
-    private func nextRedirect() async throws -> [String: String] {
-        try await withCheckedThrowingContinuation { cont in
-            lock.lock(); defer { lock.unlock() }
-            if let pending { cont.resume(with: pending) } else { continuation = cont }
-        }
-    }
-
-    private func finish(_ result: Result<[String: String], Error>) {
-        lock.lock(); defer { lock.unlock() }
-        if let continuation { continuation.resume(with: result); self.continuation = nil } else { pending = result }
-    }
-
-    private func handle(_ conn: NWConnection) {
-        conn.start(queue: .global())
-        conn.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] data, _, _, _ in
-            guard let self, let data, let text = String(data: data, encoding: .utf8),
-                  let line = text.split(separator: "\r\n").first else { conn.cancel(); return }
-            let parts = line.split(separator: " ")
-            guard parts.count >= 2, let comps = URLComponents(string: "http://x" + parts[1]) else { conn.cancel(); return }
-            // Browsers also ask for /favicon.ico; only the redirect carries a query.
-            guard let items = comps.queryItems, !items.isEmpty else {
-                conn.send(content: Self.response("", status: "404 Not Found"), completion: .contentProcessed { _ in conn.cancel() })
-                return
-            }
-            let query = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
-            let ok = query["error"] == nil
-            conn.send(content: Self.response(Self.page(ok: ok)), completion: .contentProcessed { _ in conn.cancel() })
-            self.finish(.success(query))
-        }
-    }
-
-    private static func response(_ body: String, status: String = "200 OK") -> Data {
-        let bytes = body.data(using: .utf8) ?? Data()
-        let head = "HTTP/1.1 \(status)\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(bytes.count)\r\nConnection: close\r\n\r\n"
-        return head.data(using: .utf8)! + bytes
-    }
-
-    private static func page(ok: Bool) -> String {
+    fileprivate static func page(ok: Bool) -> String {
         let title = ok ? tr("You're signed in", "Berhasil masuk") : tr("Sign-in failed", "Login gagal")
         let hint = ok ? tr("You can close this tab and return to DueBar.", "Tab ini boleh ditutup, kembali ke DueBar.") : tr("Return to DueBar and try again.", "Kembali ke DueBar dan coba lagi.")
         return """
@@ -178,5 +107,11 @@ private final class LoopbackServer: @unchecked Sendable {
         @media(prefers-color-scheme:light){body{background:#f2f2f7;color:#1d1d1f}p{color:#6e6e73}}
         </style><div><b>\(ok ? "✓" : "✕")</b><h1>\(title)</h1><p>\(hint)</p></div>
         """
+    }
+}
+
+private extension Data {
+    var base64URL: String {
+        base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 }

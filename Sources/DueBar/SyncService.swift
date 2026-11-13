@@ -6,6 +6,9 @@ import Foundation
 enum Sync {
     static let defaultServer = "https://duebar-api.ahmadarif.id"
 
+    /// How long a sign-in may wait for the person to finish in the browser.
+    static let signInTimeout: TimeInterval = 5 * 60
+
     /// The server the app talks to. Fixed: it receives the Google ID token and the payments,
     /// so it is not a setting. `DUEBAR_SERVER_URL` overrides it for local testing only, and
     /// only for HTTPS or a loopback address.
@@ -40,6 +43,9 @@ final class SyncService: ObservableObject {
     private var inFlight = false
     private var again = false
     private var wakeObserver: NSObjectProtocol?
+    private var signInTask: Task<Void, Never>?
+    private var signInTimeout: Task<Void, Never>?
+    private var signInTimedOut = false
     private var profileRefreshed = false
 
     init(store: Store, directory: URL = Store.defaultDirectory) {
@@ -62,10 +68,30 @@ final class SyncService: ObservableObject {
 
     // MARK: Account
 
-    func signIn() async {
+    /// Starts sign-in in the background. It gives up by itself after `Sync.signInTimeout`
+    /// so a forgotten browser tab never leaves the button stuck.
+    func startSignIn() {
         guard !signingIn else { return }
+        lastError = nil
         signingIn = true
-        defer { signingIn = false }
+        signInTimedOut = false
+        signInTask = Task { await performSignIn() }
+        signInTimeout = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Sync.signInTimeout))
+            guard !Task.isCancelled, let self, self.signingIn else { return }
+            self.signInTimedOut = true
+            self.signInTask?.cancel()
+        }
+    }
+
+    func cancelSignIn() { signInTask?.cancel() }
+
+    private func performSignIn() async {
+        defer {
+            signInTimeout?.cancel()
+            signInTask = nil
+            signingIn = false
+        }
         do {
             guard let client else { throw SyncError.badURL }
             let s: AuthSession
@@ -82,13 +108,20 @@ final class SyncService: ObservableObject {
             store.resetCursorAndPushAll()
             start()
             await syncNow()
-        } catch GoogleAuth.AuthError.cancelled {
-            // Nothing to report.
+        } catch where Self.isCancellation(error) {
+            if signInTimedOut {
+                lastError = tr("Sign-in took too long and was cancelled. Try again.", "Login terlalu lama dan dibatalkan. Coba lagi.")
+            }
         } catch {
             state = session == nil ? .signedOut : .failed(error.localizedDescription)
             lastError = error.localizedDescription
             objectWillChange.send()
         }
+    }
+
+    private static func isCancellation(_ error: Error) -> Bool {
+        if case GoogleAuth.AuthError.cancelled = error { return true }
+        return error is CancellationError || (error as? URLError)?.code == .cancelled
     }
 
     /// Why the last sign-in attempt failed, while signed out.
