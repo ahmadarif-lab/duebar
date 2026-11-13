@@ -71,7 +71,16 @@ struct PanelTheme: Identifiable, Equatable {
 
 private struct PanelThemeKey: EnvironmentKey { static let defaultValue = PanelTheme.dark }
 
+private struct ThemeAccentKey: EnvironmentKey { static let defaultValue = Color.accentColor }
+
 extension EnvironmentValues {
+    /// Accent for custom-drawn controls (chips, avatar): the theme's colour, or the Mac's own
+    /// accent when the theme follows the system.
+    var themeAccent: Color {
+        get { self[ThemeAccentKey.self] }
+        set { self[ThemeAccentKey.self] = newValue }
+    }
+
     var panelTheme: PanelTheme {
         get { self[PanelThemeKey.self] }
         set { self[PanelThemeKey.self] = newValue }
@@ -82,4 +91,49 @@ extension Color {
     init(hex: UInt32) {
         self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
     }
+}
+
+// MARK: - Themed windows
+
+/// Applies the chosen theme to a whole window (Settings, the payment editor): window mode
+/// (light/dark), accent colour and background. "Follow system" leaves the native look alone.
+struct ThemedWindowContent: ViewModifier {
+    @AppStorage(SettingsKey.theme) private var themeID = PanelTheme.systemID
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let theme = PanelTheme.resolve(themeID, colorScheme: colorScheme)
+        if themeID == PanelTheme.systemID {
+            content.environment(\.panelTheme, theme)
+        } else {
+            content
+                .environment(\.panelTheme, theme)
+                .environment(\.themeAccent, theme.primary)
+                .tint(theme.primary)
+                .background(theme.background)
+                .preferredColorScheme(theme.isDark ? .dark : .light)
+        }
+    }
+}
+
+/// Form chrome that follows the theme: its background and its grouped rows.
+struct ThemedForm: ViewModifier {
+    @AppStorage(SettingsKey.theme) private var themeID = PanelTheme.systemID
+    @Environment(\.panelTheme) private var theme
+
+    func body(content: Content) -> some View {
+        if themeID == PanelTheme.systemID {
+            content
+        } else {
+            content
+                .scrollContentBackground(.hidden)
+                .background(theme.background)
+                .listRowBackground(theme.section)
+        }
+    }
+}
+
+extension View {
+    func themedWindow() -> some View { modifier(ThemedWindowContent()) }
+    func themedForm() -> some View { modifier(ThemedForm()) }
 }

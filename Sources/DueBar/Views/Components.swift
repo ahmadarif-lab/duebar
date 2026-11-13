@@ -17,6 +17,7 @@ struct Dropdown: View {
             .background(theme.background)
             .foregroundStyle(theme.text)
             .environment(\.panelTheme, theme)
+            .environment(\.themeAccent, theme.primary)
             .environment(\.colorScheme, theme.isDark ? .dark : .light)
     }
 }
@@ -104,6 +105,7 @@ extension Decimal {
 
 /// Google profile photo in a circle, falling back to the account's initial.
 struct AccountAvatar: View {
+    @Environment(\.themeAccent) private var accent
     var session: AuthSession
     var size: CGFloat = 40
 
@@ -111,8 +113,8 @@ struct AccountAvatar: View {
 
     var body: some View {
         ZStack {
-            Circle().fill(Color.accentColor.opacity(0.22))
-            Text(initial).font(.system(size: size * 0.45, weight: .semibold)).foregroundStyle(Color.accentColor)
+            Circle().fill(accent.opacity(0.22))
+            Text(initial).font(.system(size: size * 0.45, weight: .semibold)).foregroundStyle(accent)
             if let url = URL(string: session.picture), !session.picture.isEmpty {
                 AsyncImage(url: url) { phase in
                     if let image = phase.image { image.resizable().scaledToFill() }

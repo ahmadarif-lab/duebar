@@ -16,14 +16,13 @@ enum Snapshot {
                   scheme: scheme, to: dir.appendingPathComponent("dropdown-\(theme).png"))
             write(Dropdown(close: {}, initialTab: .history).environmentObject(context.store).environmentObject(context.sync),
                   scheme: scheme, to: dir.appendingPathComponent("history-\(theme).png"))
+            let sample = context.store.ledger.allPayments.first { $0.name == "Listrik PLN" }
+            write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
+            for (name, tab) in [("general", SettingsTab.general), ("account", .account)] {
+                write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).themedWindow(), scheme: scheme,
+                      to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
+            }
         }
-        let sample = context.store.ledger.allPayments.first { $0.name == "Listrik PLN" }
-        write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store), scheme: .light,
-              to: dir.appendingPathComponent("form.png"))
-        write(SettingsView().environmentObject(context.store).environmentObject(context.sync), scheme: .light,
-              to: dir.appendingPathComponent("settings.png"))
-        write(SettingsView(initialTab: .account).environmentObject(context.store).environmentObject(context.sync), scheme: .dark,
-              to: dir.appendingPathComponent("settings-account.png"))
         NSApp.terminate(nil)
     }
 

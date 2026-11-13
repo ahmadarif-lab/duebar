@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Add / edit a payment in its own window.
 struct PaymentForm: View {
+    @Environment(\.themeAccent) private var accent
     @EnvironmentObject var store: Store
     var original: Payment?
     var onDone: () -> Void
@@ -141,6 +142,7 @@ struct PaymentForm: View {
                 }
             }
             .formStyle(.grouped)
+            .themedForm()
 
             Divider()
             HStack {
@@ -194,7 +196,7 @@ struct PaymentForm: View {
             Text(label).font(.system(size: 11.5, weight: on ? .semibold : .regular))
                 .lineLimit(1).fixedSize()
                 .padding(.horizontal, 8).padding(.vertical, 5)
-                .background(Capsule().fill(on ? Color.accentColor : Color.secondary.opacity(0.15)))
+                .background(Capsule().fill(on ? accent : Color.secondary.opacity(0.15)))
                 .foregroundStyle(on ? Color.white : Color.primary)
         }
         .buttonStyle(.plain)

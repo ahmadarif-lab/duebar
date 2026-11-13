@@ -74,12 +74,14 @@ private struct GeneralPane: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+        .themedForm()
     }
 }
 
 // MARK: - Notifications
 
 private struct NotificationsPane: View {
+    @Environment(\.themeAccent) private var accent
     @EnvironmentObject var store: Store
     @AppStorage(SettingsKey.notificationsOn) private var on = true
     @AppStorage(SettingsKey.defaultOffsets) private var offsetsRaw = "1,0"
@@ -119,6 +121,7 @@ private struct NotificationsPane: View {
             }
         }
         .formStyle(.grouped)
+        .themedForm()
         .task { status = await AppContext.shared.notifier.authorizationStatus() }
     }
 
@@ -135,7 +138,7 @@ private struct NotificationsPane: View {
             Text(label).font(.system(size: 11.5, weight: isOn ? .semibold : .regular))
                 .lineLimit(1).fixedSize()
                 .padding(.horizontal, 8).padding(.vertical, 5)
-                .background(Capsule().fill(isOn ? Color.accentColor : Color.secondary.opacity(0.15)))
+                .background(Capsule().fill(isOn ? accent : Color.secondary.opacity(0.15)))
                 .foregroundStyle(isOn ? Color.white : Color.primary)
         }
         .buttonStyle(.plain)
@@ -181,8 +184,8 @@ private struct AccountPane: View {
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(tr("Keep your payments in sync across your Mac and Android.", "Sinkronkan pembayaran antara Mac dan Android."))
-                        Text(tr("Your data stays on this Mac until you sign in. Signing in uploads it to your own private space; DueBar only sees your name and email from Google.",
-                                "Data tetap di Mac ini sampai kamu masuk. Setelah masuk, data diunggah ke ruang pribadimu; DueBar hanya menerima nama dan email dari Google."))
+                        Text(tr("Your data stays on this Mac until you sign in. Signing in uploads it to your own private space; DueBar only receives your name, email and profile photo from Google.",
+                                "Data tetap di Mac ini sampai kamu masuk. Setelah masuk, data diunggah ke ruang pribadimu; DueBar hanya menerima nama, email, dan foto profil dari Google."))
                             .font(.callout).foregroundStyle(.secondary)
                         HStack {
                             Button {
@@ -218,6 +221,7 @@ private struct AccountPane: View {
             }
         }
         .formStyle(.grouped)
+        .themedForm()
     }
 
     @ViewBuilder

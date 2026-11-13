@@ -229,7 +229,7 @@ enum Windows {
         window.title = payment == nil ? tr("New Payment", "Pembayaran Baru") : tr("Edit Payment", "Ubah Pembayaran")
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView:
-            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store))
+            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).themedWindow())
         window.center()
         track(window)
         editor = window
@@ -247,7 +247,7 @@ enum Windows {
             window.title = tr("DueBar Settings", "Pengaturan DueBar")
                 window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView:
-                SettingsView().environmentObject(context.store).environmentObject(context.sync))
+                SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
             window.center()
             track(window)
             settings = window
