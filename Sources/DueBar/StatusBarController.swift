@@ -43,28 +43,50 @@ final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
         let agenda = context.store.agenda
         let style = MenuBarStyle(rawValue: UserDefaults.standard.string(forKey: SettingsKey.menuBarStyle) ?? "") ?? .next
-        let hasOverdue = !agenda.overdue.isEmpty
-        let symbol = hasOverdue ? "exclamationmark.circle.fill" : (agenda.today.isEmpty ? "creditcard" : "bell.badge.fill")
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "DueBar")
-        image?.isTemplate = true
-        button.image = image
-        button.contentTintColor = hasOverdue ? .systemRed : nil
+        button.image = Self.icon(badge: agenda.dueSoonCount)
+        button.contentTintColor = nil
 
         var title = ""
-        switch style {
-        case .icon: break
-        case .count:
-            if agenda.attentionCount > 0 { title = " \(agenda.attentionCount)" }
-        case .next:
-            if let next = agenda.next, Self.isNear(next) {
-                let name = next.payment.name.count > 16 ? String(next.payment.name.prefix(15)) + "…" : next.payment.name
-                title = " \(name) · \(Self.short(next.status))"
-            }
+        if style == .next, let next = agenda.next, Self.isNear(next) {
+            let name = next.payment.name.count > 16 ? String(next.payment.name.prefix(15)) + "…" : next.payment.name
+            title = " \(name) · \(Self.short(next.status))"
         }
         button.attributedTitle = NSAttributedString(string: title, attributes: [
             .font: NSFont.menuBarFont(ofSize: 0),
         ])
-        button.setAccessibilityLabel(tr("DueBar, \(agenda.attentionCount) payments need attention", "DueBar, \(agenda.attentionCount) pembayaran perlu perhatian"))
+        button.setAccessibilityLabel(tr("DueBar, \(agenda.dueSoonCount) payments due soon", "DueBar, \(agenda.dueSoonCount) pembayaran segera jatuh tempo"))
+    }
+
+    /// The logo with a red count badge at its top right, as in the design. Coloured rather than a
+    /// template image; without the logo file it falls back to a monochrome symbol.
+    static func icon(badge: Int) -> NSImage? {
+        guard let logo = BrandLogo.image else {
+            let fallback = NSImage(systemSymbolName: "calendar.badge.clock", accessibilityDescription: "DueBar")
+            fallback?.isTemplate = true
+            return fallback
+        }
+        let side: CGFloat = 18
+        let width = badge > 0 ? side + 6 : side
+        let image = NSImage(size: NSSize(width: width, height: side), flipped: false) { _ in
+            logo.draw(in: NSRect(x: 0, y: 0, width: side, height: side), from: .zero, operation: .sourceOver, fraction: 1)
+            guard badge > 0 else { return true }
+            let label = badge > 9 ? "9+" : "\(badge)"
+            let diameter: CGFloat = badge > 9 ? 13 : 11.5
+            let circle = NSRect(x: width - diameter, y: side - diameter + 1, width: diameter, height: diameter)
+            NSColor.systemRed.setFill()
+            NSBezierPath(ovalIn: circle).fill()
+            NSColor.white.withAlphaComponent(0.95).setStroke()
+            let ring = NSBezierPath(ovalIn: circle.insetBy(dx: -0.4, dy: -0.4)); ring.lineWidth = 0.8
+            let text = NSAttributedString(string: label, attributes: [
+                .font: NSFont.systemFont(ofSize: badge > 9 ? 7 : 8, weight: .bold),
+                .foregroundColor: NSColor.white,
+            ])
+            let size = text.size()
+            text.draw(at: NSPoint(x: circle.midX - size.width / 2, y: circle.midY - size.height / 2))
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 
     private static func isNear(_ item: AgendaItem) -> Bool {

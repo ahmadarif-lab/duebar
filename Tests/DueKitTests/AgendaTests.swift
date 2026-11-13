@@ -14,6 +14,7 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(a.week.map(\.payment.name), ["soon"])
         XCTAssertEqual(a.later.map(\.payment.name), ["far"])
         XCTAssertEqual(a.attentionCount, 3)
+        XCTAssertEqual(a.dueSoonCount, 4)   // plus "soon" (5 days out)
         XCTAssertEqual(a.next?.payment.name, "beyond")
     }
 

@@ -17,6 +17,8 @@ public struct Agenda: Equatable, Sendable {
 
     public var isEmpty: Bool { overdue.isEmpty && today.isEmpty && week.isEmpty && later.isEmpty && paused.isEmpty }
     public var attentionCount: Int { overdue.count + today.count }
+    /// Overdue, due today, or due within the week: the number on the menu bar badge.
+    public var dueSoonCount: Int { overdue.count + today.count + week.count }
     /// First thing the menu bar should mention.
     public var next: AgendaItem? { (overdue + today + week + later).first }
 

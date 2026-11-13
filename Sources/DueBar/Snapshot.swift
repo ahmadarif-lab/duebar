@@ -25,6 +25,19 @@ enum Snapshot {
                       to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
             }
         }
+        let strip = HStack(spacing: 0) {
+            ForEach([false, true], id: \.self) { dark in
+                HStack(spacing: 14) {
+                    ForEach([0, 2, 7, 12], id: \.self) { n in
+                        if let image = StatusBarController.icon(badge: n) {
+                            Image(nsImage: image).resizable().interpolation(.high).frame(width: image.size.width * 3, height: image.size.height * 3)
+                        }
+                    }
+                }
+                .padding(18).background(dark ? Color(hex: 0x2B2B2E) : Color(hex: 0xE9E3F2))
+            }
+        }
+        write(strip, scheme: .dark, to: dir.appendingPathComponent("menubar-icons.png"))
         NSApp.terminate(nil)
     }
 

@@ -17,12 +17,11 @@ enum SettingsKey {
 }
 
 enum MenuBarStyle: String, CaseIterable, Identifiable {
-    case icon, count, next
+    case icon, next
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .icon: return tr("Icon only", "Ikon saja")
-        case .count: return tr("Icon + count due", "Ikon + jumlah jatuh tempo")
+        case .icon: return tr("Icon with count", "Ikon dengan jumlah")
         case .next: return tr("Next payment", "Pembayaran berikutnya")
         }
     }
