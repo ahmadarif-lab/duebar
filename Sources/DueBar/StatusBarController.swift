@@ -175,8 +175,8 @@ final class DropdownPanel: NSPanel {
         var resize: (CGSize) -> Void = { _ in }
         let hosting = NSHostingView(rootView:
             content
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
                 .fixedSize()
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                     DispatchQueue.main.async { resize(size) }

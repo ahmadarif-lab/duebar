@@ -6,13 +6,13 @@ struct Dropdown: View {
     @AppStorage(SettingsKey.theme) private var themeID = PanelTheme.systemID
     @Environment(\.colorScheme) private var colorScheme
     var close: () -> Void
-    var initialTab: DropdownContent.Tab = .upcoming
-    static let width: CGFloat = 360
+    var initialPage: DropdownContent.Page = .home
+    static let width: CGFloat = 400
 
     var body: some View {
         let theme = PanelTheme.resolve(themeID, colorScheme: colorScheme)
-        DropdownContent(close: close, initialTab: initialTab)
-            .padding(6)
+        DropdownContent(close: close, initialPage: initialPage)
+            .padding(14)
             .frame(width: Self.width)
             .background(theme.background)
             .foregroundStyle(theme.text)
@@ -67,7 +67,7 @@ struct CategoryBadge: View {
     var body: some View {
         let color = Color(hex: category.colorHex)
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.3, style: .continuous).fill(color.opacity(0.18))
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous).fill(color.opacity(0.16))
             Image(systemName: category.symbol)
                 .font(.system(size: size * 0.46, weight: .semibold))
                 .foregroundStyle(color)
@@ -82,15 +82,16 @@ struct IconButton: View {
     var symbol: String
     var help: String
     var tint: Color?
+    var size: CGFloat = 26
     var action: () -> Void
     @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: size * 0.46, weight: .semibold))
                 .foregroundStyle(tint ?? theme.secondaryText)
-                .frame(width: 26, height: 26)
+                .frame(width: size, height: size)
                 .background(Circle().fill(hovering ? theme.track : .clear))
         }
         .buttonStyle(.plain)
@@ -198,5 +199,23 @@ struct BrandMark: View {
         .frame(width: size, height: size)
         .shadow(color: Brand.orange.opacity(0.28), radius: size * 0.12, y: size * 0.05)
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Cards
+
+extension View {
+    /// The rounded white (or dark) surface that groups rows in the dropdown.
+    func cardBackground() -> some View { modifier(CardBackground()) }
+}
+
+private struct CardBackground: ViewModifier {
+    @Environment(\.panelTheme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(theme.section))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(theme.track, lineWidth: 1))
+            .shadow(color: .black.opacity(theme.isDark ? 0 : 0.04), radius: 6, y: 2)
     }
 }

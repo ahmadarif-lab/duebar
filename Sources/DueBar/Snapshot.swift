@@ -14,7 +14,9 @@ enum Snapshot {
             let scheme: ColorScheme = theme == "light" ? .light : .dark
             write(Dropdown(close: {}).environmentObject(context.store).environmentObject(context.sync),
                   scheme: scheme, to: dir.appendingPathComponent("dropdown-\(theme).png"))
-            write(Dropdown(close: {}, initialTab: .history).environmentObject(context.store).environmentObject(context.sync),
+            write(Dropdown(close: {}, initialPage: .all).environmentObject(context.store).environmentObject(context.sync),
+                  scheme: scheme, to: dir.appendingPathComponent("all-\(theme).png"))
+            write(Dropdown(close: {}, initialPage: .history).environmentObject(context.store).environmentObject(context.sync),
                   scheme: scheme, to: dir.appendingPathComponent("history-\(theme).png"))
             let sample = context.store.ledger.allPayments.first { $0.name == "Listrik PLN" }
             write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
