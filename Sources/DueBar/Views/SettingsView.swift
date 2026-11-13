@@ -63,6 +63,8 @@ private struct GeneralPane: View {
                     Text(tr("Follow system", "Ikuti sistem")).tag(PanelTheme.systemID)
                     ForEach(PanelTheme.presets) { Text($0.name).tag($0.id) }
                 }
+                Text(tr("The theme colours the menu bar dropdown and the payment editor. Settings always stay dark.", "Tema mewarnai dropdown menubar dan form pembayaran. Pengaturan selalu gelap."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Picker(tr("Language", "Bahasa"), selection: $language) {
                     Text(tr("Follow system", "Ikuti sistem")).tag("system")
                     Text("English").tag("en")
@@ -84,7 +86,6 @@ private struct GeneralPane: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
-        .themedForm()
     }
 }
 
@@ -131,7 +132,6 @@ private struct NotificationsPane: View {
             }
         }
         .formStyle(.grouped)
-        .themedForm()
         .task { status = await AppContext.shared.notifier.authorizationStatus() }
     }
 
@@ -229,7 +229,6 @@ private struct AccountPane: View {
             }
         }
         .formStyle(.grouped)
-        .themedForm()
     }
 
     @ViewBuilder

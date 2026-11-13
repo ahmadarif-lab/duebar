@@ -248,7 +248,7 @@ enum Windows {
             window.title = tr("DueBar Settings", "Pengaturan DueBar")
                 window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView:
-                SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
+                SettingsView().environmentObject(context.store).environmentObject(context.sync).preferredColorScheme(.dark))
             window.center()
             track(window)
             settings = window
