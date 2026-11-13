@@ -12,7 +12,7 @@ struct SettingsView: View {
         TabView {
             GeneralPane().tabItem { Label(tr("General", "Umum"), systemImage: "gearshape") }
             NotificationsPane().tabItem { Label(tr("Reminders", "Pengingat"), systemImage: "bell") }
-            AccountPane().tabItem { Label(tr("Sync", "Sinkron"), systemImage: "icloud") }
+            AccountPane().tabItem { Label(tr("Account", "Akun"), systemImage: "person.crop.circle") }
             DataPane().tabItem { Label(tr("Data", "Data"), systemImage: "externaldrive") }
         }
         .frame(width: 560, height: 520)
@@ -170,7 +170,6 @@ private struct AccountPane: View {
                         Spacer()
                         Button(tr("Sign out", "Keluar")) { Task { await sync.signOut() } }
                     }
-                    LabeledContent(tr("Syncing to", "Sinkron ke")) { Text(s.email).textSelection(.enabled) }
                     LabeledContent(tr("Status", "Status")) { status }
                     HStack {
                         Spacer()

@@ -16,7 +16,7 @@ A macOS menu bar app that reminds you of payments before they're due: bills, sub
 
 ## Sync
 
-Sign in with Google (Settings → Sync) to sync across devices. Without signing in, nothing ever leaves the Mac.
+Sign in with Google (Settings → Account) to sync across devices. Without signing in, nothing ever leaves the Mac.
 
 ```
 DueBar (macOS) ──┐                          ┌── Google (ID token verified server-side)
