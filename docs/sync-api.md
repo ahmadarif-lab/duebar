@@ -14,6 +14,10 @@ All bodies are JSON over HTTPS. Authenticated calls send `Authorization: Bearer 
 
 Other calls: `GET /v1/me` (the profile above), `POST /v1/logout`, `DELETE /v1/account` (removes the account and every synced record immediately).
 
+Master password (shared by every device on the account, e.g. Mac and Android): `GET /v1/lock` → `{verifier: {salt, hash, iterations} | null, updatedAt}`; `PUT /v1/lock {verifier}` → `{updatedAt}` stores it; `DELETE /v1/lock` → `{updatedAt}` removes it. The verifier is `PBKDF2-HMAC-SHA256(password as NFC UTF-8, salt (16 random bytes), iterations (≥ 100 000, the app uses 600 000)) → 32 bytes`, with `salt` and `hash` base64. The password itself is never sent; each device checks what is typed against the verifier locally, so unlocking works offline. `updatedAt` is the server's clock: a device with no unsent change compares it to its own copy and adopts the account's version when it differs; a device with an unsent change pushes it. Touch ID is a per-device setting and is not synced.
+
+Master password reset (for someone who forgot it; a confirmed code also removes the account's password on every device): `POST /v1/lock/reset/request` emails a 6-digit code to the account's address (valid 15 minutes; one a minute, two per account per 24 hours, and a daily cap for the whole server; answers 429 beyond that, 503 when the server has no mail configured). `POST /v1/lock/reset/confirm {code}` checks it (single use, five wrong tries burn it) and answers `{ok: true}`.
+
 ## Sync
 
 `POST /v1/sync` with `{ "cursor": <int>, "changes": [Record] }` returns `{ "cursor": <int>, "more": <bool>, "accepted": <int>, "changes": [Record] }`.

@@ -81,4 +81,24 @@ final class SyncIntegrationTests: XCTestCase {
         let reply = try await c.exchange(token: fresh.token, cursor: 0, changes: [])
         XCTAssertTrue(reply.changes.isEmpty)
     }
+
+    func testMasterPasswordVerifierReachesTheOtherDevice() async throws {
+        let c = try client()
+        let email = "lock-\(UUID().uuidString.prefix(8))@test.dev"
+        let mac = try await c.devLogin(email: email)
+        let phone = try await c.devLogin(email: email)
+        let empty = try await c.fetchLock(token: mac.token)
+        XCTAssertNil(empty.verifier)
+
+        let verifier = PasswordVerifier.make(password: "rahasia", iterations: 600_000)
+        let stamp = try await c.putLock(token: mac.token, verifier: verifier)
+        let seen = try await c.fetchLock(token: phone.token)
+        XCTAssertEqual(seen.updatedAt, stamp)
+        XCTAssertTrue(try XCTUnwrap(seen.verifier).matches("rahasia"))
+        XCTAssertFalse(try XCTUnwrap(seen.verifier).matches("salah"))
+
+        _ = try await c.putLock(token: phone.token, verifier: nil)
+        let removed = try await c.fetchLock(token: mac.token)
+        XCTAssertNil(removed.verifier)
+    }
 }

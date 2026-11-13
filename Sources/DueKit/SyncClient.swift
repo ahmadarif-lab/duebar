@@ -96,6 +96,38 @@ public struct SyncClient: Sendable {
     public func logout(token: String) async throws { _ = try await send("POST", "/v1/logout", json: [String: String](), token: token) }
     public func deleteAccount(token: String) async throws { _ = try await send("DELETE", "/v1/account", json: nil as [String: String]?, token: token) }
 
+    /// The account's master password (a salted hash, never the password) so every device shares it.
+    public struct RemoteLock: Codable, Equatable, Sendable {
+        public var verifier: PasswordVerifier?
+        public var updatedAt: Int64
+    }
+
+    public func fetchLock(token: String) async throws -> RemoteLock {
+        try decode(await send("GET", "/v1/lock", body: nil, token: token))
+    }
+
+    /// Stores the verifier (nil removes it); returns the server's timestamp for the change.
+    public func putLock(token: String, verifier: PasswordVerifier?) async throws -> Int64 {
+        struct Reply: Decodable { var updatedAt: Int64 }
+        if let verifier {
+            struct Body: Encodable { var verifier: PasswordVerifier }
+            let reply: Reply = try decode(await send("PUT", "/v1/lock", json: Body(verifier: verifier), token: token))
+            return reply.updatedAt
+        }
+        let reply: Reply = try decode(await send("DELETE", "/v1/lock", json: nil as [String: String]?, token: token))
+        return reply.updatedAt
+    }
+
+    /// "Forgot master password": the server emails a one-time code to the account's address
+    /// (at most one a minute and two a day), and the app then confirms the code the person typed.
+    public func requestLockReset(token: String) async throws {
+        _ = try await send("POST", "/v1/lock/reset/request", json: [String: String](), token: token)
+    }
+
+    public func confirmLockReset(token: String, code: String) async throws {
+        _ = try await send("POST", "/v1/lock/reset/confirm", json: ["code": code], token: token)
+    }
+
     public func exchange(token: String, cursor: Int64, changes: [SyncRecord]) async throws -> SyncReply {
         try decode(await send("POST", "/v1/sync", body: try JSONEncoder().encode(Request(cursor: cursor, changes: changes)), token: token))
     }
