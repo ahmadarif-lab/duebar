@@ -92,7 +92,7 @@ struct PaymentForm: View {
                 }
 
                 Section(tr("Schedule", "Jadwal")) {
-                    DatePicker(isEditing ? tr("Next due", "Jatuh tempo berikutnya") : tr("Due date", "Jatuh tempo"), selection: $due, displayedComponents: .date)
+                    LabeledContent(isEditing ? tr("Next due", "Jatuh tempo berikutnya") : tr("Due date", "Jatuh tempo")) { DateField(date: $due) }
                     Picker(tr("Repeat", "Ulangi"), selection: $repeatChoice) {
                         ForEach(RepeatChoice.allCases) { Text($0.title).tag($0) }
                     }
@@ -111,7 +111,7 @@ struct PaymentForm: View {
                         Picker(tr("Ends", "Berakhir"), selection: $endMode) {
                             ForEach(EndMode.allCases) { Text($0.title).tag($0) }
                         }
-                        if endMode == .onDate { DatePicker(tr("End date", "Tanggal akhir"), selection: $endDate, displayedComponents: .date) }
+                        if endMode == .onDate { LabeledContent(tr("End date", "Tanggal akhir")) { DateField(date: $endDate) } }
                         if endMode == .afterCount { Stepper(tr("\(endCount) payments in total", "Total \(endCount) kali"), value: $endCount, in: 1...600) }
                     }
                     if repeatChoice == .monthly || repeatChoice == .quarterly || repeatChoice == .semiannual || repeatChoice == .yearly, Calendar.current.component(.day, from: due) > 28 {
@@ -124,7 +124,7 @@ struct PaymentForm: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
                         ForEach([0, 1, 2, 3, 7, 14], id: \.self) { d in offsetChip(d) }
                     }
-                    DatePicker(tr("Remind at", "Ingatkan pukul"), selection: $reminderTime, displayedComponents: .hourAndMinute)
+                    LabeledContent(tr("Remind at", "Ingatkan pukul")) { TimeField(date: $reminderTime) }
                 }
 
                 Section(tr("Details", "Detail")) {

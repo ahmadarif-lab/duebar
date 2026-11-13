@@ -232,3 +232,76 @@ private struct CardBackground: ViewModifier {
             .shadow(color: .black.opacity(theme.isDark ? 0 : 0.04), radius: 6, y: 2)
     }
 }
+
+// MARK: - Date and time fields
+
+/// A date shown as a rounded chip that opens a calendar, instead of the system's field with a
+/// stepper and a dark pop-up. The calendar follows the window's light/dark mode and the brand accent.
+struct DateField: View {
+    @Binding var date: Date
+    @State private var open = false
+
+    var body: some View {
+        FieldChip(text: Self.format(date), symbol: "calendar") { open.toggle() }
+            .popover(isPresented: $open, arrowEdge: .bottom) {
+                DatePicker("", selection: $date, displayedComponents: .date)
+                    .datePickerStyle(.graphical).labelsHidden()
+                    .padding(10).frame(width: 250)
+                    .tint(Brand.orange)
+                    // Picking a day closes the calendar; changing month does not touch `date`.
+                    .onChange(of: date) { _, _ in open = false }
+            }
+    }
+
+    static func format(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = appLocale
+        f.setLocalizedDateFormatFromTemplate("d MMM yyyy")
+        return f.string(from: date)
+    }
+}
+
+/// A time of day as a chip that opens a clock.
+struct TimeField: View {
+    @Binding var date: Date
+    @State private var open = false
+
+    var body: some View {
+        FieldChip(text: Self.format(date), symbol: "clock") { open.toggle() }
+            .popover(isPresented: $open, arrowEdge: .bottom) {
+                DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
+                    .datePickerStyle(.graphical).labelsHidden()
+                    .padding(10)
+                    .tint(Brand.orange)
+            }
+    }
+
+    static func format(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = appLocale
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f.string(from: date)
+    }
+}
+
+private struct FieldChip: View {
+    @Environment(\.themeAccent) private var accent
+    var text: String
+    var symbol: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(text).monospacedDigit()
+                Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(accent)
+            }
+            .font(.system(size: 12.5))
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}

@@ -41,6 +41,17 @@ enum Snapshot {
         }
         write(strip, scheme: .dark, to: dir.appendingPathComponent("menubar-icons.png"))
 
+        for (name, scheme): (String, ColorScheme) in [("light", .light), ("dark", .dark)] {
+            let popovers = HStack(alignment: .top, spacing: 16) {
+                DatePicker("", selection: .constant(Date()), displayedComponents: .date).datePickerStyle(.graphical).labelsHidden().frame(width: 250)
+                DatePicker("", selection: .constant(Date()), displayedComponents: .hourAndMinute).datePickerStyle(.graphical).labelsHidden()
+            }
+            .padding(14)
+            .tint(Brand.orange)
+            .background(scheme == .dark ? Color(hex: 0x2A2A2D) : .white)
+            write(popovers, scheme: scheme, to: dir.appendingPathComponent("pickers-\(name).png"))
+        }
+
         // The real Settings window (its frame, not just the view), on the Reminders tab.
         Windows.showSettings(tab: .reminders)
         // AppKit resizes a shown window on the next run loop turns, so wait before measuring.

@@ -272,10 +272,12 @@ private struct NotificationsPane: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
                     ForEach([0, 1, 2, 3, 7, 14], id: \.self) { d in chip(d) }
                 }
-                DatePicker(tr("Remind at", "Ingatkan pukul"), selection: Binding(
-                    get: { Calendar.current.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: Date()) ?? Date() },
-                    set: { let c = Calendar.current.dateComponents([.hour, .minute], from: $0); minute = (c.hour ?? 9) * 60 + (c.minute ?? 0) }
-                ), displayedComponents: .hourAndMinute)
+                LabeledContent(tr("Remind at", "Ingatkan pukul")) {
+                    TimeField(date: Binding(
+                        get: { Calendar.current.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: Date()) ?? Date() },
+                        set: { let c = Calendar.current.dateComponents([.hour, .minute], from: $0); minute = (c.hour ?? 9) * 60 + (c.minute ?? 0) }
+                    ))
+                }
                 Button(tr("Apply to all existing payments", "Terapkan ke semua pembayaran")) { applyToAll() }
             }
             Section {
