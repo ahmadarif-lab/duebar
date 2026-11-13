@@ -334,7 +334,7 @@ struct UpcomingList: View {
                 .font(.system(size: 12)).foregroundStyle(theme.secondaryText)
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
-            ScrollView {
+            FittingScrollView(maxHeight: 336) {
                 VStack(spacing: 10) {
                     group(tr("Overdue", "Terlambat"), agenda.overdue, color: theme.critical)
                     group(tr("Today", "Hari ini"), agenda.today, color: theme.warning)
@@ -342,12 +342,8 @@ struct UpcomingList: View {
                     group(tr("Later", "Nanti"), agenda.later)
                     if !agenda.paused.isEmpty { pausedBox(agenda.paused) }
                 }
-                .padding(.bottom, 12)
+                .padding(.bottom, 4)
             }
-            .scrollIndicators(.automatic)
-            .frame(maxHeight: 336)
-            .fixedSize(horizontal: false, vertical: true)
-            .fadeBottomEdge()
         }
     }
 
@@ -364,7 +360,7 @@ struct UpcomingList: View {
                 VStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         PaymentRow(item: item, markPaid: markPaid, close: close)
-                        if index < items.count - 1 { Divider().overlay(theme.track).padding(.leading, 50.5) }
+                        if index < items.count - 1 { Divider().overlay(theme.track).padding(.horizontal, 7) }
                     }
                 }
                 .padding(.horizontal, 3.5).padding(.vertical, 1.5)
@@ -383,7 +379,6 @@ struct UpcomingList: View {
             VStack(spacing: 6.5) {
                 ForEach(payments) { p in
                     HStack(spacing: 8.5) {
-                        CategoryBadge(category: p.category, size: 28).opacity(0.5)
                         Text(p.name).font(.system(size: 12.5)).foregroundStyle(theme.secondaryText).lineLimit(1)
                         Spacer()
                         Button(tr("Resume", "Lanjutkan")) { store.setPaused(p.id, false) }
@@ -407,7 +402,7 @@ struct PaymentRow: View {
     @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
     var item: AgendaItem
-    /// The home list: no category tile or icons, the amount leads. The detail pages keep them.
+    /// The home list gives the amount more weight and room; the other pages are denser. Neither has icons.
     var compact = false
     var markPaid: (String) -> Void
     var close: () -> Void
@@ -416,13 +411,9 @@ struct PaymentRow: View {
     var body: some View {
         let p = item.payment
         HStack(spacing: 10) {
-            if !compact { CategoryBadge(category: p.category, size: 38) }
             VStack(alignment: .leading, spacing: 2.5) {
                 Text(p.name).font(.system(size: 13.5, weight: .semibold)).lineLimit(1)
                 HStack(spacing: 4) {
-                    if !compact {
-                        Image(systemName: p.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 11)).foregroundStyle(theme.primary)
-                    }
                     Text(DueText.relative(item.status)).foregroundStyle(statusColor)
                     Text("·").foregroundStyle(theme.secondaryText)
                     Text(DueText.date(item.due)).foregroundStyle(theme.secondaryText)
@@ -447,7 +438,7 @@ struct PaymentRow: View {
                 .layoutPriority(1)
             }
         }
-        .padding(.vertical, compact ? 9 : 7.5).padding(.horizontal, 6.5)
+        .padding(.vertical, compact ? 9 : 6).padding(.horizontal, 8)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? theme.track.opacity(0.6) : .clear))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
@@ -511,7 +502,7 @@ struct HistoryList: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
             let months = store.ledger.historyByMonth(limit: 80)
-            ScrollView {
+            FittingScrollView(maxHeight: 336) {
                 VStack(spacing: 10) {
                     ForEach(months) { month in
                         let rows = month.events
@@ -525,7 +516,7 @@ struct HistoryList: View {
                             VStack(spacing: 0) {
                                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, e in
                                     row(e)
-                                    if index < rows.count - 1 { Divider().overlay(theme.track).padding(.leading, 47) }
+                                    if index < rows.count - 1 { Divider().overlay(theme.track).padding(.horizontal, 7) }
                                 }
                             }
                             .padding(.horizontal, 3.5).padding(.vertical, 1.5)
@@ -537,18 +528,13 @@ struct HistoryList: View {
                             .font(.system(size: 11)).foregroundStyle(theme.secondaryText).multilineTextAlignment(.center).padding(.horizontal, 8)
                     }
                 }
-                .padding(.bottom, 12)
+                .padding(.bottom, 4)
             }
-            .scrollIndicators(.automatic)
-            .frame(maxHeight: 336)
-            .fixedSize(horizontal: false, vertical: true)
-            .fadeBottomEdge()
         }
     }
 
     private func row(_ e: PaymentEvent) -> some View {
         HStack(spacing: 10) {
-            CategoryBadge(category: e.category, size: 33.5)
             VStack(alignment: .leading, spacing: 1.5) {
                 Text(e.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Text("\(e.kind == .paid ? tr("Paid", "Lunas") : tr("Skipped", "Dilewati")) · \(DueText.date(DayStamp(e.resolvedAt)))")

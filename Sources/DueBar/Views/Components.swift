@@ -323,3 +323,42 @@ extension View {
         )
     }
 }
+
+// MARK: - Scroll area that fits its content
+
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// A scroll view exactly as tall as its content up to `maxHeight`: no scroll bar and no bounce
+/// when everything fits, and a faded bottom edge plus indicators when it doesn't. (A plain
+/// ScrollView with fixedSize and a maximum height reported slightly more than the content, so a
+/// single row still got a scroll bar.)
+struct FittingScrollView<Content: View>: View {
+    var maxHeight: CGFloat
+    @ViewBuilder var content: Content
+    @State private var contentHeight: CGFloat = 0
+
+    private var overflows: Bool { contentHeight > maxHeight + 0.5 }
+
+    var body: some View {
+        ScrollView {
+            content.background(
+                GeometryReader { proxy in Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height) }
+            )
+        }
+        .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicators(overflows ? .automatic : .never)
+        .frame(height: contentHeight > 0 ? min(contentHeight, maxHeight) : maxHeight)
+        .modifier(OptionalFade(active: overflows))
+    }
+}
+
+private struct OptionalFade: ViewModifier {
+    var active: Bool
+    func body(content: Content) -> some View {
+        if active { content.fadeBottomEdge() } else { content }
+    }
+}

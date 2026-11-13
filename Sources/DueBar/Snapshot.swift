@@ -82,6 +82,9 @@ enum Snapshot {
 
     private static func write<V: View>(_ view: V, scheme: ColorScheme, to url: URL) {
         let hosting = NSHostingView(rootView: view.environment(\.colorScheme, scheme).fixedSize())
+        // Measured content (FittingScrollView) arrives on a later layout pass; give it one.
+        hosting.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.15))
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
