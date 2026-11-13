@@ -490,6 +490,7 @@ struct PaymentRow: View {
 }
 
 struct HistoryList: View {
+    static let fiveEntriesHeight: CGFloat = 268
     @EnvironmentObject var store: Store
     @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
@@ -502,7 +503,8 @@ struct HistoryList: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
             let months = store.ledger.historyByMonth(limit: 80)
-            FittingScrollView(maxHeight: 336) {
+            // Room for five entries and their month heading; the sixth makes it scroll.
+            FittingScrollView(maxHeight: HistoryList.fiveEntriesHeight) {
                 VStack(spacing: 10) {
                     ForEach(months) { month in
                         let rows = month.events
