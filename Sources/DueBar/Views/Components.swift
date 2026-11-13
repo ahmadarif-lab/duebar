@@ -12,6 +12,7 @@ struct Dropdown: View {
     var body: some View {
         let theme = PanelTheme.resolve(themeID, colorScheme: colorScheme)
         DropdownContent(close: close, initialPage: initialPage)
+            .lockGated()
             .padding(10)
             .frame(width: Self.width)
             .background(theme.background)
@@ -282,8 +283,8 @@ private struct SettingsCard: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(colorScheme == .dark ? Color(nsColor: .controlBackgroundColor) : Color.white))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.1), lineWidth: 1))
             .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.04), radius: 6, y: 2)
     }
 }

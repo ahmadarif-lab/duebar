@@ -68,6 +68,10 @@ struct PaymentForm: View {
     static let size = CGSize(width: 420, height: 520)
 
     var body: some View {
+        formBody.lockGated()
+    }
+
+    private var formBody: some View {
         VStack(spacing: 0) {
             Form {
                 Section {

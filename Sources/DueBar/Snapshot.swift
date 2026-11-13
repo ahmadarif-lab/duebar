@@ -12,6 +12,10 @@ enum Snapshot {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         // Fixed sample rates: snapshots never touch the network.
         context.rates.setForPreview(ExchangeRates(rates: ["IDR": 16150, "EUR": Decimal(string: "0.92")!, "SGD": Decimal(string: "1.3")!]))
+        // DUEBAR_SNAPSHOT_LOCK=1 renders everything locked (a throwaway password; nothing is saved).
+        let lockMode = ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_LOCK"]
+        if lockMode == "1" { AppLock.shared.setForPreview(password: "x") }
+        if lockMode == "touch" { AppLock.shared.setForPreviewTouchOnly() }
         let themes = (ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_THEMES"] ?? "dark,light").split(separator: ",").map(String.init)
         for theme in themes {
             UserDefaults.standard.set(theme, forKey: SettingsKey.theme)
@@ -23,7 +27,8 @@ enum Snapshot {
             write(Dropdown(close: {}, initialPage: .history).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates),
                   scheme: scheme, to: dir.appendingPathComponent("history-\(theme).png"))
             let sample = context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" }
-            write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).environmentObject(context.rates).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
+            write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
+            write(MasterPasswordSheet(mode: .set, done: {}).environmentObject(context.sync), scheme: scheme, to: dir.appendingPathComponent("password-sheet-\(theme).png"))
             for (name, tab) in [("general", SettingsTab.general), ("data", .data), ("account", .account)] {
                 write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow(), scheme: scheme,
                       to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
@@ -55,7 +60,7 @@ enum Snapshot {
         }
 
         // The real Settings window (its frame, not just the view), on the Reminders tab.
-        Windows.showSettings(tab: .reminders)
+        Windows.showSettings(tab: ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_TAB"] == "general" ? .general : .reminders)
         // AppKit resizes a shown window on the next run loop turns, so wait before measuring.
         RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         if let window = NSApp.windows.first(where: { $0.title == tr("DueBar Settings", "Pengaturan DueBar") }), let view = window.contentView {
@@ -67,7 +72,7 @@ enum Snapshot {
             }
         }
         // The real editor window.
-        Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" })
+        Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" } ?? context.store.ledger.allPayments.first)
         RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         if let window = NSApp.windows.first(where: { $0.title == tr("Edit Payment", "Ubah Pembayaran") }), let view = window.contentView {
             view.layoutSubtreeIfNeeded()
@@ -92,7 +97,12 @@ enum Snapshot {
         window.contentView = hosting
         window.layoutIfNeeded()
         hosting.layoutSubtreeIfNeeded()
-        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return }
+        // DUEBAR_SNAPSHOT_SCALE=2 renders at retina resolution (for screenshots on web pages).
+        let scale = Int(ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_SCALE"] ?? "") ?? 1
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(hosting.bounds.width) * scale, pixelsHigh: Int(hosting.bounds.height) * scale,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return }
+        rep.size = hosting.bounds.size
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: url)
     }

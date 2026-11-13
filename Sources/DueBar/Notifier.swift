@@ -65,7 +65,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private static func body(_ r: PlannedReminder) -> String {
-        let amount = Money.format(r.amount, currency: r.currency)
+        // With a master password on, a reminder on the lock screen shouldn't show the amount.
+        let amount = UserDefaults.standard.bool(forKey: AppLock.enabledKey) ? tr("Payment", "Pembayaran") : Money.format(r.amount, currency: r.currency)
         if r.offset < 0 { return tr("\(amount) is overdue since \(DueText.date(r.due)).", "\(amount) sudah lewat jatuh tempo sejak \(DueText.date(r.due)).") }
         switch r.offset {
         case 0: return tr("\(amount) is due today.", "\(amount) jatuh tempo hari ini.")

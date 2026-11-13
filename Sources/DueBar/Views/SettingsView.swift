@@ -42,7 +42,7 @@ struct SettingsView: View {
 
     /// Taller only for UI snapshots (DUEBAR_SETTINGS_HEIGHT), so a whole pane fits one picture.
     static var size: CGSize {
-        CGSize(width: 560, height: CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_SETTINGS_HEIGHT"] ?? "") ?? 500))
+        CGSize(width: 640, height: CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_SETTINGS_HEIGHT"] ?? "") ?? 560))
     }
 
     init(initialTab: SettingsTab? = nil) {
@@ -53,7 +53,7 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             sidebar
             Divider()
-            pane.frame(maxWidth: .infinity, maxHeight: .infinity)
+            pane.frame(maxWidth: .infinity, maxHeight: .infinity).lockGated()
         }
         .frame(width: Self.size.width, height: Self.size.height)
         .background(Color(nsColor: .windowBackgroundColor))
@@ -170,22 +170,26 @@ private struct GeneralPane: View {
     }
 
     var body: some View {
-        Form {
-            Section(tr("Appearance", "Tampilan")) {
-                Picker(tr("Theme", "Tema"), selection: $theme) {
-                    Text(tr("System", "Sistem")).tag(PanelTheme.systemID)
-                    Text(tr("Light", "Terang")).tag(PanelTheme.light.id)
-                    Text(tr("Dark", "Gelap")).tag(PanelTheme.dark.id)
+        SettingsPage {
+            SettingsGroup(tr("Appearance", "Tampilan")) {
+                SettingsRow(tr("Theme", "Tema")) {
+                    SettingsMenu(selection: $theme, options: [
+                        (PanelTheme.systemID, tr("System", "Sistem")),
+                        (PanelTheme.light.id, tr("Light", "Terang")),
+                        (PanelTheme.dark.id, tr("Dark", "Gelap")),
+                    ])
                 }
-                Picker(tr("Language", "Bahasa"), selection: $language) {
-                    Text(tr("Follow system", "Ikuti sistem")).tag("system")
-                    Text("English").tag("en")
-                    Text("Bahasa Indonesia").tag("id")
+                SettingsRow(tr("Language", "Bahasa")) {
+                    SettingsMenu(selection: $language, options: [
+                        ("system", tr("Follow system", "Ikuti sistem")),
+                        ("en", "English"),
+                        ("id", "Bahasa Indonesia"),
+                    ])
                 }
-                Picker(tr("Main currency", "Mata uang utama"), selection: $currency) {
-                    ForEach(currencyChoices, id: \.self) { Text($0).tag($0) }
+                SettingsRow(tr("Main currency", "Mata uang utama")) {
+                    SettingsMenu(selection: $currency, options: currencyChoices.map { ($0, $0) })
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                SettingsNote {
                     Text(tr("Totals are shown in this currency, and new payments start with it. Payments in another currency are converted at the latest exchange rate.",
                             "Total ditampilkan dalam mata uang ini dan pembayaran baru memakainya. Pembayaran dalam mata uang lain dikonversi dengan kurs terbaru."))
                     if let rates = rates.rates {
@@ -194,22 +198,24 @@ private struct GeneralPane: View {
                         Text(tr("Couldn't fetch exchange rates; they are fetched again when needed.", "Gagal mengambil kurs; akan dicoba lagi saat diperlukan."))
                     }
                 }
-                .font(.caption).foregroundStyle(.secondary)
             }
-            Section(tr("System", "Sistem")) {
-                Toggle(tr("Start at login", "Buka saat login"), isOn: Binding(
-                    get: { loginItem },
-                    set: { LoginItem.setEnabled($0); loginItem = LoginItem.isEnabled }
-                ))
-                Toggle(tr("Show icon in Dock while a window is open", "Tampilkan ikon di Dock saat jendela terbuka"), isOn: $showInDock)
-                    .onChange(of: showInDock) { _, _ in Windows.applyDockPolicy() }
+            SettingsGroup(tr("System", "Sistem")) {
+                SettingsRow(tr("Start at login", "Buka saat login")) {
+                    SettingsSwitch(isOn: Binding(
+                        get: { loginItem },
+                        set: { LoginItem.setEnabled($0); loginItem = LoginItem.isEnabled }
+                    ))
+                }
+                SettingsRow(tr("Show icon in Dock while a window is open", "Tampilkan ikon di Dock saat jendela terbuka")) {
+                    SettingsSwitch(isOn: $showInDock)
+                }
+                .onChange(of: showInDock) { _, _ in Windows.applyDockPolicy() }
             }
+            PrivacySection()
             UpdatesSection()
             Text(tr("Language changes apply the next time you open a window.", "Perubahan bahasa berlaku saat jendela dibuka lagi."))
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 4)
         }
-        .formStyle(.grouped)
-        .controlSize(.small)
     }
 }
 
@@ -224,41 +230,43 @@ private struct NotificationsPane: View {
     @State private var status: UNAuthorizationStatus?
 
     var body: some View {
-        Form {
-            Section {
-                Toggle(tr("Send reminders", "Kirim pengingat"), isOn: $on)
+        SettingsPage {
+            SettingsGroup {
+                SettingsRow(tr("Send reminders", "Kirim pengingat")) { SettingsSwitch(isOn: $on) }
                     .onChange(of: on) { _, _ in AppContext.shared.notifier.reschedule(force: true) }
                 if on, status == .denied {
                     HStack {
                         Label(tr("Notifications are off for DueBar in System Settings.", "Notifikasi DueBar mati di Pengaturan Sistem."), systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange).font(.callout)
+                            .foregroundStyle(.orange).font(.system(size: 12.5))
                         Spacer()
-                        Button(tr("Open Settings", "Buka Pengaturan")) {
+                        PillButton(title: tr("Open Settings", "Buka Pengaturan"), symbol: "gearshape") {
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!)
                         }
                     }
+                    .padding(.vertical, 9)
                 }
             }
-            Section(tr("Defaults for new payments", "Bawaan untuk pembayaran baru")) {
+            SettingsGroup(tr("Defaults for new payments", "Bawaan untuk pembayaran baru")) {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
                     ForEach([0, 1, 2, 3, 7, 14], id: \.self) { d in chip(d) }
                 }
-                LabeledContent(tr("Remind at", "Ingatkan pukul")) {
+                .padding(.vertical, 12)
+                SettingsRow(tr("Remind at", "Ingatkan pukul")) {
                     TimeField(date: Binding(
                         get: { Calendar.current.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: Date()) ?? Date() },
                         set: { let c = Calendar.current.dateComponents([.hour, .minute], from: $0); minute = (c.hour ?? 9) * 60 + (c.minute ?? 0) }
                     ))
                 }
-                Button(tr("Apply to all existing payments", "Terapkan ke semua pembayaran")) { applyToAll() }
+                HStack {
+                    PillButton(title: tr("Apply to all existing payments", "Terapkan ke semua pembayaran"), symbol: "arrow.triangle.2.circlepath") { applyToAll() }
+                    Spacer()
+                }
+                .padding(.vertical, 10)
             }
-            Section {
-                Text(tr("Late payments get a reminder each morning for three days. Notifications are scheduled on each device from your synced data.",
-                        "Pembayaran terlambat diingatkan tiap pagi selama tiga hari. Notifikasi dijadwalkan di tiap perangkat dari data yang tersinkron."))
-                    .font(.callout).foregroundStyle(.secondary)
-            }
+            Text(tr("Late payments get a reminder each morning for three days. Notifications are scheduled on each device from your synced data.",
+                    "Pembayaran terlambat diingatkan tiap pagi selama tiga hari. Notifikasi dijadwalkan di tiap perangkat dari data yang tersinkron."))
+                .font(.system(size: 12)).foregroundStyle(.secondary).padding(.horizontal, 4)
         }
-        .formStyle(.grouped)
-        .controlSize(.small)
         .task { status = await AppContext.shared.notifier.authorizationStatus() }
     }
 
@@ -301,30 +309,33 @@ private struct AccountPane: View {
     @State private var confirmDelete = false
 
     var body: some View {
-        Form {
-            Section {
+        SettingsPage {
+            SettingsGroup {
                 if let s = sync.session {
                     HStack(spacing: 12) {
                         AccountAvatar(session: s, size: 44)
-                        VStack(alignment: .leading) {
-                            Text(s.name.isEmpty ? s.email : s.name).font(.headline)
-                            if !s.name.isEmpty { Text(s.email).font(.callout).foregroundStyle(.secondary) }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.name.isEmpty ? s.email : s.name).font(.system(size: 15, weight: .semibold))
+                            if !s.name.isEmpty { Text(s.email).font(.system(size: 12.5)).foregroundStyle(.secondary) }
                         }
                         Spacer()
-                        Button(tr("Sign out", "Keluar")) { Task { await sync.signOut() } }
+                        PillButton(title: tr("Sign out", "Keluar"), symbol: "rectangle.portrait.and.arrow.right") { Task { await sync.signOut() } }
                     }
-                    LabeledContent(tr("Status", "Status")) { status }
+                    .padding(.vertical, 12)
+                    SettingsRow(tr("Status", "Status")) { status }
                     HStack {
                         Spacer()
-                        Button(tr("Sync now", "Sinkronkan sekarang")) { Task { await sync.syncNow() } }
+                        PillButton(title: tr("Sync now", "Sinkronkan sekarang"), symbol: "arrow.triangle.2.circlepath") { Task { await sync.syncNow() } }
                             .disabled(sync.state == .syncing)
                     }
+                    .padding(.vertical, 10)
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(tr("Keep your payments in sync across your Mac and Android.", "Sinkronkan pembayaran antara Mac dan Android."))
+                            .font(.system(size: 13.5, weight: .medium))
                         Text(tr("Your data stays on this Mac until you sign in. Signing in uploads it to your own private space; DueBar only receives your name, email and profile photo from Google.",
                                 "Data tetap di Mac ini sampai kamu masuk. Setelah masuk, data diunggah ke ruang pribadimu; DueBar hanya menerima nama, email, dan foto profil dari Google."))
-                            .font(.callout).foregroundStyle(.secondary)
+                            .font(.system(size: 12.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                         HStack {
                             GoogleSignInButton(title: tr("Sign in with Google", "Masuk dengan Google")) {
                                 sync.startSignIn()
@@ -332,31 +343,34 @@ private struct AccountPane: View {
                             .disabled(sync.signingIn || !GoogleAuth.isConfigured)
                             if sync.signingIn {
                                 ProgressView().controlSize(.small)
-                                Text(tr("Finish in your browser…", "Selesaikan di browser…")).font(.callout).foregroundStyle(.secondary)
-                                Button(tr("Cancel", "Batal")) { sync.cancelSignIn() }
+                                Text(tr("Finish in your browser…", "Selesaikan di browser…")).font(.system(size: 12.5)).foregroundStyle(.secondary)
+                                PillButton(title: tr("Cancel", "Batal"), symbol: "xmark") { sync.cancelSignIn() }
                             }
                         }
                         if !GoogleAuth.isConfigured {
                             Label(tr("This build has no Google client ID yet.", "Build ini belum punya Google client ID."), systemImage: "info.circle")
-                                .font(.callout).foregroundStyle(.secondary)
+                                .font(.system(size: 12.5)).foregroundStyle(.secondary)
                         }
                         if let error = sync.lastError {
-                            Label(error, systemImage: "exclamationmark.triangle.fill").font(.callout).foregroundStyle(.orange)
+                            Label(error, systemImage: "exclamationmark.triangle.fill").font(.system(size: 12.5)).foregroundStyle(.orange)
                         }
                     }
+                    .padding(.vertical, 14)
                 }
             }
             if sync.isSignedIn {
-                Section(tr("Danger zone", "Zona bahaya")) {
-                    Button(tr("Delete my account and cloud data…", "Hapus akun dan data cloud…"), role: .destructive) { confirmDelete = true }
-                        .confirmationDialog(tr("Delete your cloud data?", "Hapus data cloud?"), isPresented: $confirmDelete) {
-                            Button(tr("Delete cloud data", "Hapus data cloud"), role: .destructive) { Task { _ = await sync.deleteAccount() } }
-                        } message: { Text(tr("This removes your account and synced payments from the server and signs out every device. Data on this Mac is kept.", "Akun dan pembayaran di server dihapus dan semua perangkat keluar. Data di Mac ini tetap ada.")) }
+                SettingsGroup(tr("Danger zone", "Zona bahaya")) {
+                    HStack {
+                        PillButton(title: tr("Delete my account and cloud data…", "Hapus akun dan data cloud…"), symbol: "trash") { confirmDelete = true }
+                            .confirmationDialog(tr("Delete your cloud data?", "Hapus data cloud?"), isPresented: $confirmDelete) {
+                                Button(tr("Delete cloud data", "Hapus data cloud"), role: .destructive) { Task { _ = await sync.deleteAccount() } }
+                            } message: { Text(tr("This removes your account and synced payments from the server and signs out every device. Data on this Mac is kept.", "Akun dan pembayaran di server dihapus dan semua perangkat keluar. Data di Mac ini tetap ada.")) }
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
                 }
             }
         }
-        .formStyle(.grouped)
-        .controlSize(.small)
     }
 
     @ViewBuilder
@@ -611,11 +625,21 @@ private struct ManagedPaymentRow: View {
         } else if payment.paused {
             Text(tr("Paused · \(DueText.repeatText(payment.repeatRule))", "Dijeda · \(DueText.repeatText(payment.repeatRule))")).foregroundStyle(.secondary)
         } else if let status = payment.status(), let due = payment.nextDue() {
-            HStack(spacing: 5) {
-                Image(systemName: payment.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 10.5)).foregroundStyle(accent)
+            // Never truncate the date (a different year makes it longer): drop the icon first, then
+            // the relative text, before anything gets cut.
+            let when = HStack(spacing: 5) {
                 Text(DueText.relative(status)).foregroundStyle(color(status))
                 Text("·").foregroundStyle(.secondary)
                 Text(DueText.date(due)).foregroundStyle(.secondary)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 5) {
+                    Image(systemName: payment.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 10.5)).foregroundStyle(accent)
+                    when
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                when.fixedSize(horizontal: true, vertical: false)
+                Text(DueText.date(due)).foregroundStyle(.secondary).fixedSize(horizontal: true, vertical: false)
             }
         }
     }
@@ -763,29 +787,26 @@ private struct UpdatesSection: View {
     @AppStorage(SettingsKey.autoCheckUpdates) private var auto = true
 
     var body: some View {
-        Section {
-            LabeledContent(tr("Version", "Versi")) { Text(Updater.currentVersion ?? tr("Development build", "Build pengembangan")) }
-            Toggle(tr("Automatically check for updates", "Cek pembaruan otomatis"), isOn: $auto)
-        } header: {
-            Text(tr("Updates", "Pembaruan"))
-        } footer: {
+        SettingsGroup(tr("Updates", "Pembaruan")) {
+            SettingsRow(tr("Version", "Versi")) {
+                Text(Updater.currentVersion ?? tr("Development build", "Build pengembangan")).foregroundStyle(.secondary)
+            }
+            SettingsRow(tr("Automatically check for updates", "Cek pembaruan otomatis")) { SettingsSwitch(isOn: $auto) }
             HStack(spacing: 8) {
                 Circle().fill(status.color).frame(width: 8, height: 8)
-                Text(status.text).foregroundStyle(.secondary)
+                Text(status.text).foregroundStyle(.secondary).lineLimit(2)
                 Spacer()
                 if updater.isUpdating {
                     ProgressView().controlSize(.small)
                 } else if let release = updater.availableUpdate {
-                    Button(tr("Update to v\(release.version)", "Perbarui ke v\(release.version)")) { Task { await updater.update() } }
-                        .buttonStyle(.borderedProminent).controlSize(.regular)
+                    PillButton(title: tr("Update to v\(release.version)", "Perbarui ke v\(release.version)"), symbol: "arrow.down.circle") { Task { await updater.update() } }
                 } else {
-                    Button(tr("Check for Updates", "Cek Pembaruan")) { Task { await updater.check() } }
-                        .buttonStyle(.bordered).controlSize(.regular)
+                    PillButton(title: tr("Check for Updates", "Cek Pembaruan"), symbol: "arrow.clockwise") { Task { await updater.check() } }
                         .disabled(updater.isChecking || Updater.currentVersion == nil)
                 }
             }
             .font(.system(size: 12.5))
-            .padding(.top, 4)
+            .padding(.vertical, 10)
         }
     }
 
@@ -799,5 +820,118 @@ private struct UpdatesSection: View {
             return updater.noReleases ? (tr("No releases yet.", "Belum ada rilis."), .secondary) : (tr("You're using the latest version.", "Kamu memakai versi terbaru."), .green)
         }
         return Updater.currentVersion == nil ? (tr("Updates are off in development builds.", "Pembaruan nonaktif di build pengembangan."), .secondary) : ("", .clear)
+    }
+}
+
+// MARK: - Settings building blocks
+
+/// A scrolling page of cards, for the panes that are not lists.
+struct SettingsPage<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) { content }
+                .padding(.horizontal, 20).padding(.vertical, 18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// A titled white card holding rows. Put `SettingsRow`s (or anything else) inside; rows draw their own divider.
+struct SettingsGroup<Content: View>: View {
+    var title: String?
+    @ViewBuilder var content: Content
+
+    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title { Text(title).font(.system(size: 13, weight: .semibold)).padding(.leading, 4) }
+            VStack(alignment: .leading, spacing: 0) { content }
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .settingsCard()
+        }
+    }
+}
+
+/// A label on the left and its control on the right, with a hairline above every row but the first.
+struct SettingsRow<Control: View>: View {
+    var title: String
+    @ViewBuilder var control: Control
+
+    init(_ title: String, @ViewBuilder control: () -> Control) {
+        self.title = title
+        self.control = control()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title).font(.system(size: 13.5)).lineLimit(2)
+            Spacer(minLength: 8)
+            control.labelsHidden().fixedSize()
+        }
+        .padding(.vertical, 9)
+        .frame(minHeight: 40)
+        .overlay(alignment: .top) { Divider().opacity(0.7) }
+    }
+}
+
+/// Small grey explanation under the rows of a card.
+struct SettingsNote<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) { content }
+            .font(.system(size: 12)).foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .top) { Divider().opacity(0.7) }
+    }
+}
+
+struct SettingsSwitch: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden().tint(Brand.orange)
+    }
+}
+
+/// A pop-up choice drawn by SwiftUI. The system pop-up button inside a freshly opened window can draw
+/// its title blank until the view is rebuilt; this one always shows the current choice.
+struct SettingsMenu<Value: Hashable>: View {
+    @Binding var selection: Value
+    var options: [(value: Value, title: String)]
+    @State private var hovering = false
+
+    var body: some View {
+        Menu {
+            ForEach(options.indices, id: \.self) { i in
+                Button {
+                    selection = options[i].value
+                } label: {
+                    if options[i].value == selection { Label(options[i].title, systemImage: "checkmark") } else { Text(options[i].title) }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(options.first { $0.value == selection }?.title ?? "").lineLimit(1).foregroundStyle(Color.primary)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Brand.orange)
+            }
+            .font(.system(size: 12.5))
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(Capsule().fill(Color.primary.opacity(hovering ? 0.12 : 0.07)))
+            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1)))
+            .contentShape(Capsule())
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+        .fixedSize()
+        .onHover { hovering = $0 }
     }
 }

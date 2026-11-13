@@ -132,6 +132,48 @@ final class SyncService: ObservableObject {
         clearAuthSession()
     }
 
+    /// Keeps the master password in step with the account: sends this Mac's change, or takes the account's.
+    /// Failures are quiet; the next sync tries again.
+    func syncLock() async {
+        guard let session, let client else { return }
+        let lock = AppLock.shared
+        do {
+            if lock.dirty {
+                lock.markPushed(updatedAt: try await client.putLock(token: session.token, verifier: lock.verifierToSync))
+            } else {
+                let remote = try await client.fetchLock(token: session.token)
+                lock.adopt(verifier: remote.verifier, updatedAt: remote.updatedAt, email: session.email)
+            }
+        } catch {}
+    }
+
+    /// Asks the server to email a code that removes the master password. Returns an error message, or nil.
+    func requestLockReset() async -> String? {
+        guard let session, let client else { return tr("Sign in to get a code by email.", "Masuk dulu untuk dapat kode lewat email.") }
+        do { try await client.requestLockReset(token: session.token); return nil }
+        catch { return Self.resetMessage(error) }
+    }
+
+    func confirmLockReset(code: String) async -> String? {
+        guard let session, let client else { return tr("Sign in to get a code by email.", "Masuk dulu untuk dapat kode lewat email.") }
+        do { try await client.confirmLockReset(token: session.token, code: code); return nil }
+        catch { return Self.resetMessage(error) }
+    }
+
+    private static func resetMessage(_ error: Error) -> String {
+        if let e = error as? SyncError, case .server(let m) = e {
+            switch m {
+            case "Wrong code": return tr("Wrong code.", "Kode salah.")
+            case let m where m.hasPrefix("No valid code"): return tr("That code expired. Ask for a new one.", "Kode kedaluwarsa. Minta kode baru.")
+            case let m where m.hasPrefix("Wait a minute"): return tr("Wait a minute before asking again.", "Tunggu semenit sebelum meminta lagi.")
+            case let m where m.contains("today"): return tr("Too many codes today. Use your Mac password instead, or try tomorrow.", "Kode hari ini sudah habis. Pakai password Mac, atau coba besok.")
+            case let m where m.hasPrefix("Too many wrong"): return tr("Too many wrong codes. Ask for a new one.", "Terlalu banyak salah. Minta kode baru.")
+            default: return m
+            }
+        }
+        return tr("Couldn't reach the server.", "Tidak bisa menghubungi server.")
+    }
+
     /// Removes the account and its data from the server (kept locally).
     func deleteAccount() async -> Bool {
         guard let session else { return false }
@@ -234,6 +276,7 @@ final class SyncService: ObservableObject {
                     apply: { reply, pushed in store.applyRemote(reply.changes, cursor: reply.cursor, pushed: pushed) }
                 )
             } while again
+            await syncLock()
             await refreshProfile()
             lastSync = Date()
             UserDefaults.standard.set(lastSync, forKey: SettingsKey.lastSync)

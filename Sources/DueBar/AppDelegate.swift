@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             context?.notifier.reschedule()
             Task { await context?.rates.refreshIfNeeded() }
         }
+        AppLock.shared.onPasswordChange = { [weak context] in Task { await context?.sync.syncLock() } }
+        AppLock.shared.onEnabledChange = { [weak context] in context?.notifier.reschedule(force: true) }
         store.onChangeAfterRemote = { [weak context] in context?.notifier.reschedule() }
 
         if let dir = ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_DIR"], !dir.isEmpty {

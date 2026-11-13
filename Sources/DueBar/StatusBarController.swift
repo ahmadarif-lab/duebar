@@ -120,6 +120,7 @@ final class StatusBarController: NSObject {
 
     func openPanel() {
         close()
+        AppLock.shared.noteOpened(windowOpen: Windows.hasOpenWindow)
         guard let button = statusItem.button, let window = button.window else { return }
         let root = Dropdown(close: { [weak self] in self?.close() })
             .environmentObject(context.store)
@@ -130,13 +131,13 @@ final class StatusBarController: NSObject {
             anchor: NSPoint(x: window.frame.midX, y: window.frame.minY - 3),
             screen: window.screen
         )
-        panel.onResignKey = { [weak self] in self?.close() }
+        panel.onResignKey = { [weak self] in if !AppLock.shared.isAuthenticating { self?.close() } }
         panel.onEscape = { [weak self] in self?.close() }
         panel.show()
         self.panel = panel
         button.highlight(true)
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            MainActor.assumeIsolated { self?.close() }
+            MainActor.assumeIsolated { if !AppLock.shared.isAuthenticating { self?.close() } }
         }
         Task { await context.sync.syncNow() }
     }
@@ -144,6 +145,7 @@ final class StatusBarController: NSObject {
     func close() {
         guard panel != nil else { return }
         lastDismissal = Date()
+        AppLock.shared.noteClosed()
         statusItem.button?.highlight(false)
         if let outsideClickMonitor { NSEvent.removeMonitor(outsideClickMonitor) }
         outsideClickMonitor = nil
@@ -220,6 +222,7 @@ enum Windows {
     /// brings it forward instead of replacing it and losing what was typed.
     private static var editorKey: String?
     private static var settings: NSWindow?
+    static var hasOpenWindow: Bool { editor != nil || settings != nil }
 
     static func showEditor(payment: Payment?) {
         guard let context = AppContext.shared else { return }
@@ -235,7 +238,7 @@ enum Windows {
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.contentView = host(
-            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).environmentObject(context.rates).themedWindow())
+            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow())
         window.setContentSize(PaymentForm.size)
         window.center()
         track(window)
@@ -294,6 +297,7 @@ enum Windows {
                 window.contentView = nil
                 if editor === window { editor = nil; editorKey = nil }
                 if settings === window { settings = nil }
+                AppLock.shared.noteClosed()
                 applyDockPolicy()
             }
         }
