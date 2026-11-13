@@ -216,10 +216,15 @@ final class DropdownPanel: NSPanel {
 @MainActor
 enum Windows {
     private static var editor: NSWindow?
+    /// Which payment the open editor is for ("new" for a blank one), so asking for it again
+    /// brings it forward instead of replacing it and losing what was typed.
+    private static var editorKey: String?
     private static var settings: NSWindow?
 
     static func showEditor(payment: Payment?) {
         guard let context = AppContext.shared else { return }
+        let key = payment?.id ?? "new"
+        if let editor, editorKey == key { present(editor); return }
         editor?.close()
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: PaymentForm.size),
@@ -235,6 +240,7 @@ enum Windows {
         window.center()
         track(window)
         editor = window
+        editorKey = key
         present(window)
     }
 
@@ -269,8 +275,15 @@ enum Windows {
         return hosting
     }
 
+    /// "Show icon in Dock while a window is open": the Dock icon exists only while the editor or
+    /// Settings is open, and goes away again when the last one closes.
+    static func applyDockPolicy() {
+        let wanted = UserDefaults.standard.bool(forKey: SettingsKey.showInDock) && (editor != nil || settings != nil)
+        NSApp.setActivationPolicy(wanted ? .regular : .accessory)
+    }
+
     private static func present(_ window: NSWindow) {
-        NSApp.setActivationPolicy(UserDefaults.standard.bool(forKey: SettingsKey.showInDock) ? .regular : .accessory)
+        applyDockPolicy()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -279,8 +292,9 @@ enum Windows {
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
             MainActor.assumeIsolated {
                 window.contentView = nil
-                if editor === window { editor = nil }
+                if editor === window { editor = nil; editorKey = nil }
                 if settings === window { settings = nil }
+                applyDockPolicy()
             }
         }
     }
