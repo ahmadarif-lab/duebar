@@ -185,19 +185,32 @@ struct GoogleSignInButton: View {
 
 // MARK: - Brand mark
 
-/// The app mark: a calendar with a clock on an orange tile. Drawn, so it works without image assets.
+/// The app logo (Resources/BrandMark.png, copied into the bundle). A dev run from the package
+/// folder finds it next to the sources; if it is missing a drawn stand-in is used.
+enum BrandLogo {
+    static let image: NSImage? = {
+        if let url = Bundle.main.url(forResource: "BrandMark", withExtension: "png"), let image = NSImage(contentsOf: url) { return image }
+        return NSImage(contentsOf: URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Resources/BrandMark.png"))
+    }()
+}
+
 struct BrandMark: View {
     var size: CGFloat = 44
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.27, style: .continuous).fill(Brand.gradient)
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: size * 0.48, weight: .semibold))
-                .foregroundStyle(.white)
+        Group {
+            if let image = BrandLogo.image {
+                Image(nsImage: image).resizable().interpolation(.high)
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: size * 0.27, style: .continuous).fill(Brand.gradient)
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: size * 0.48, weight: .semibold)).foregroundStyle(.white)
+                }
+            }
         }
         .frame(width: size, height: size)
-        .shadow(color: Brand.orange.opacity(0.28), radius: size * 0.12, y: size * 0.05)
+        .shadow(color: Brand.orange.opacity(0.28), radius: size * 0.1, y: size * 0.04)
         .accessibilityHidden(true)
     }
 }

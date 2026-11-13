@@ -28,6 +28,9 @@ else
     echo "No DUEBAR_GOOGLE_CLIENT_ID: the build runs fully local (sign-in disabled)."
 fi
 
+# The mark shown in the dropdown header and Settings.
+cp "$ROOT_DIR/Resources/BrandMark.png" "$CONTENTS/Resources/BrandMark.png"
+
 ICON_SOURCE="$ROOT_DIR/Resources/AppIcon.png"
 if [ -f "$ICON_SOURCE" ]; then
     ICONSET="$(mktemp -d)/AppIcon.iconset"
