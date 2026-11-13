@@ -40,7 +40,10 @@ struct SettingsView: View {
     @ObservedObject private var router = SettingsRouter.shared
     @State private var showAbout = false
 
-    static let size = CGSize(width: 560, height: 540)
+    /// Taller only for UI snapshots (DUEBAR_SETTINGS_HEIGHT), so a whole pane fits one picture.
+    static var size: CGSize {
+        CGSize(width: 560, height: CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_SETTINGS_HEIGHT"] ?? "") ?? 540))
+    }
 
     init(initialTab: SettingsTab? = nil) {
         if let initialTab { SettingsRouter.shared.tab = initialTab }
@@ -727,11 +730,13 @@ private struct DataToolsCard: View {
                 Text(tr("CSV opens in Numbers or Excel. The JSON backup restores everything, including history.", "CSV bisa dibuka di Numbers atau Excel. Cadangan JSON memulihkan semuanya, termasuk riwayat."))
                     .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Divider()
-                HStack(spacing: 8) {
-                    Text(tr("On this Mac", "Di Mac ini")).font(.system(size: 13))
-                    Spacer()
-                    Text(tr("\(store.ledger.allPayments.count) payments · \(store.history.count) history", "\(store.ledger.allPayments.count) pembayaran · \(store.history.count) riwayat"))
-                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tr("On this Mac", "Di Mac ini")).font(.system(size: 13))
+                        Text(tr("\(store.ledger.allPayments.count) payments · \(store.history.count) history", "\(store.ledger.allPayments.count) pembayaran · \(store.history.count) riwayat"))
+                            .font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
                     PillButton(title: tr("Show in Finder", "Tampilkan di Finder"), symbol: "folder") { NSWorkspace.shared.open(Store.defaultDirectory) }
                 }
                 if let message { Text(message).font(.system(size: 12)).foregroundStyle(.secondary) }

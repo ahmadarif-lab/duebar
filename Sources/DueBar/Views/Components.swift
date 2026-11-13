@@ -337,8 +337,9 @@ struct PillButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: symbol).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(accent)
-                Text(title).font(.system(size: 12.5, weight: .medium))
+                Text(title).font(.system(size: 12.5, weight: .medium)).lineLimit(1)
             }
+            .fixedSize()
             .padding(.horizontal, 12).padding(.vertical, 7)
             .background(Capsule().fill(Color.primary.opacity(hovering ? 0.1 : 0.06)))
             .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 1))
