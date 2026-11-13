@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds DueBar.app and wraps it in a DMG for a GitHub release, then prints
-# the sha256 the Homebrew cask needs.
+# Builds DueBar.app and wraps it in a DMG (what the Homebrew cask installs) and a PKG installer
+# for a GitHub release, then prints the sha256 the cask needs.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -27,3 +27,4 @@ hdiutil create \
 
 echo "Built: $DMG"
 echo "sha256: $(shasum -a 256 "$DMG" | awk '{print $1}')"
+"$ROOT_DIR/Scripts/installer_macos.sh"
