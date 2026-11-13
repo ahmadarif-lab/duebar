@@ -1,6 +1,12 @@
 import SwiftUI
 
 /// Colours for the dropdown and settings. "system" follows the Mac.
+/// DueBar's orange.
+enum Brand {
+    static let orange = Color(hex: 0xFF6B1F)
+    static let gradient = LinearGradient(colors: [Color(hex: 0xFF8E42), Color(hex: 0xFF5A0F)], startPoint: .top, endPoint: .bottom)
+}
+
 struct PanelTheme: Identifiable, Equatable {
     let id: String
     let name: String
@@ -26,15 +32,15 @@ struct PanelTheme: Identifiable, Equatable {
         id: "dark", name: "Dark", isDark: true,
         background: Color(hex: 0x1C1C1E), section: Color(hex: 0x2A2A2D),
         header: Color(hex: 0x8E8E93), text: .white, secondaryText: Color(hex: 0xA1A1A6),
-        primary: Color(hex: 0x2F7BF6), positive: Color(hex: 0x30D158), warning: Color(hex: 0xFF9F0A), critical: Color(hex: 0xFF453A),
+        primary: Brand.orange, positive: Color(hex: 0x30D158), warning: Color(hex: 0xFF9F0A), critical: Color(hex: 0xFF453A),
         track: Color.white.opacity(0.12)
     )
 
     static let light = PanelTheme(
         id: "light", name: "Light", isDark: false,
-        background: Color(hex: 0xECECEF), section: .white,
+        background: Color(hex: 0xFAF7F4), section: .white,
         header: Color(hex: 0x86868B), text: Color(hex: 0x1D1D1F), secondaryText: Color(hex: 0x6E6E73),
-        primary: Color(hex: 0x0A7AFF), positive: Color(hex: 0x28A745), warning: Color(hex: 0xE08600), critical: Color(hex: 0xFF3B30),
+        primary: Brand.orange, positive: Color(hex: 0x28A745), warning: Color(hex: 0xE08600), critical: Color(hex: 0xFF3B30),
         track: Color.black.opacity(0.09)
     )
 

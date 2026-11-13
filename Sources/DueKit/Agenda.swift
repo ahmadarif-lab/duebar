@@ -40,6 +40,29 @@ public struct Agenda: Equatable, Sendable {
     }
 }
 
+/// What is owed soon: everything overdue, due today, or due within the next N days, per currency.
+public struct Outstanding: Equatable, Sendable {
+    public var totals: [String: Decimal] = [:]
+    public var count = 0
+
+    /// Currencies with the largest total first.
+    public var currencies: [String] {
+        totals.keys.sorted { (totals[$0] ?? 0, $1) > (totals[$1] ?? 0, $0) }
+    }
+}
+
+public extension Agenda {
+    func outstanding(withinDays days: Int = 30) -> Outstanding {
+        var o = Outstanding()
+        for item in overdue + today + week + later {
+            if case .upcoming(let d) = item.status, d > days { continue }
+            o.totals[item.payment.currency, default: 0] += item.payment.amount
+            o.count += 1
+        }
+        return o
+    }
+}
+
 /// Paid and still-to-pay totals for one calendar month, per currency.
 public struct MonthSummary: Equatable, Sendable {
     public var paid: [String: Decimal] = [:]

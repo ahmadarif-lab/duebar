@@ -57,4 +57,20 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(plan.filter { $0.offset == -1 }.count, 2) // today 09:00 already passed → tomorrow, day after
         XCTAssertEqual(ReminderPlanner.plan(payments: (1...30).map { pay("p\($0)", 20, rule: RepeatRule(unit: .week)) }, now: now, limit: 10).count, 10)
     }
+
+    func testOutstandingCountsOverdueAndTheNextThirtyDaysPerCurrency() {
+        var usd = pay("usd", 20, amount: 15)
+        usd.currency = "USD"
+        let a = Agenda.make(payments: [
+            pay("late", 10, amount: 100), pay("now", 13, amount: 200), pay("soon", 18, amount: 300),
+            pay("edge", 13, month: 12, amount: 400),      // 30 days out
+            pay("far", 14, month: 12, amount: 999),       // 31 days out: not outstanding yet
+            usd,
+        ], today: today, horizonDays: 90)
+        let o = a.outstanding(withinDays: 30)
+        XCTAssertEqual(o.totals["IDR"], 1000)
+        XCTAssertEqual(o.totals["USD"], 15)
+        XCTAssertEqual(o.count, 5)
+        XCTAssertEqual(o.currencies, ["IDR", "USD"])
+    }
 }

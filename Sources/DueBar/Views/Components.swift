@@ -181,3 +181,22 @@ struct GoogleSignInButton: View {
         .accessibilityLabel(title)
     }
 }
+
+// MARK: - Brand mark
+
+/// The app mark: a calendar with a clock on an orange tile. Drawn, so it works without image assets.
+struct BrandMark: View {
+    var size: CGFloat = 44
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.27, style: .continuous).fill(Brand.gradient)
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: size * 0.48, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: size, height: size)
+        .shadow(color: Brand.orange.opacity(0.28), radius: size * 0.12, y: size * 0.05)
+        .accessibilityHidden(true)
+    }
+}
