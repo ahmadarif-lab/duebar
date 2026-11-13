@@ -77,4 +77,35 @@ final class RecurrenceTests: XCTestCase {
         XCTAssertEqual(back.repeatRule, p.repeatRule)
         XCTAssertTrue(String(decoding: data, as: UTF8.self).contains("\"1250000.55\""))
     }
+
+    func testSavingAFinishedPaymentWithoutTouchingItsDateKeepsItFinished() {
+        var p = make(DayStamp(year: 2026, month: 5, day: 5), .none)
+        p.resolve(.paid)
+        XCTAssertTrue(p.archived)
+        let opened = p.nextDue() ?? p.startDate
+        p.applyEditedSchedule(openedWith: opened, chosen: opened, rule: .none)
+        XCTAssertTrue(p.archived)
+        XCTAssertEqual(p.resolvedCount, 1)
+    }
+
+    func testChangingTheDateOrRuleStartsTheSeriesOver() {
+        var p = make(DayStamp(year: 2026, month: 1, day: 5), RepeatRule(unit: .month))
+        p.resolve(.paid); p.resolve(.paid)
+        XCTAssertEqual(p.resolvedCount, 2)
+        let opened = p.nextDue()!
+        // Same date, same rule: nothing happens.
+        p.applyEditedSchedule(openedWith: opened, chosen: opened, rule: RepeatRule(unit: .month))
+        XCTAssertEqual(p.resolvedCount, 2)
+        // New date: the series restarts from it.
+        let newDay = DayStamp(year: 2026, month: 6, day: 1)
+        p.applyEditedSchedule(openedWith: opened, chosen: newDay, rule: RepeatRule(unit: .month))
+        XCTAssertEqual(p.nextDue(), newDay)
+        XCTAssertEqual(p.resolvedCount, 0)
+        // A different rule restarts it too, and revives a finished payment.
+        var done = make(DayStamp(year: 2026, month: 5, day: 5), .none)
+        done.resolve(.paid)
+        done.applyEditedSchedule(openedWith: DayStamp(year: 2026, month: 5, day: 5), chosen: DayStamp(year: 2026, month: 5, day: 5), rule: RepeatRule(unit: .month))
+        XCTAssertFalse(done.archived)
+        XCTAssertEqual(done.resolvedCount, 0)
+    }
 }

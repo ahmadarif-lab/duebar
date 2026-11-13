@@ -152,3 +152,23 @@ public struct Ledger: Codable, Equatable, Sendable {
         for k in events.keys { events[k]?.dirty = true }
     }
 }
+
+/// One month of history, newest first.
+public struct HistoryMonth: Identifiable, Equatable, Sendable {
+    /// year * 100 + month, so it sorts correctly across years (202701 > 202611).
+    public var id: Int
+    public var events: [PaymentEvent]
+    public var date: Date { events.first?.resolvedAt ?? Date(timeIntervalSince1970: 0) }
+}
+
+public extension Ledger {
+    /// History grouped by calendar month, months and the events in them newest first.
+    func historyByMonth(limit: Int? = nil, calendar: Calendar = .current) -> [HistoryMonth] {
+        let events = limit.map { Array(history.prefix($0)) } ?? history
+        let groups = Dictionary(grouping: events) { e -> Int in
+            let c = calendar.dateComponents([.year, .month], from: e.resolvedAt)
+            return (c.year ?? 0) * 100 + (c.month ?? 0)
+        }
+        return groups.keys.sorted(by: >).map { HistoryMonth(id: $0, events: groups[$0] ?? []) }
+    }
+}

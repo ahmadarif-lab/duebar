@@ -16,7 +16,6 @@ public struct Agenda: Equatable, Sendable {
     public var paused: [Payment] = []
 
     public var isEmpty: Bool { overdue.isEmpty && today.isEmpty && week.isEmpty && later.isEmpty && paused.isEmpty }
-    public var attentionCount: Int { overdue.count + today.count }
     /// What needs attention now: overdue, due today, or inside the payment's own reminder window.
     /// A payment due in 18 days with reminders at 1, 2 and 7 days isn't "soon" yet.
     public var dueSoon: [AgendaItem] { (overdue + today + week + later).filter(Self.isDueSoon) }
@@ -83,38 +82,6 @@ public extension Agenda {
             }
         }
         return o
-    }
-}
-
-/// Paid and still-to-pay totals for one calendar month, per currency.
-public struct MonthSummary: Equatable, Sendable {
-    public var paid: [String: Decimal] = [:]
-    public var remaining: [String: Decimal] = [:]
-    public var paidCount = 0
-    public var remainingCount = 0
-
-    public var currencies: [String] { Set(paid.keys).union(remaining.keys).sorted() }
-    public var totalCount: Int { paidCount + remainingCount }
-    /// 0...1 by number of payments, for the progress bar.
-    public var progress: Double { totalCount == 0 ? 0 : Double(paidCount) / Double(totalCount) }
-
-    public static func make(ledger: Ledger, today: DayStamp = .today(), calendar: Calendar = .current) -> MonthSummary {
-        var s = MonthSummary()
-        func inMonth(_ d: DayStamp) -> Bool { d.year == today.year && d.month == today.month }
-        for event in ledger.history where event.kind == .paid && inMonth(event.dueDate) {
-            s.paid[event.currency, default: 0] += event.amount
-            s.paidCount += 1
-        }
-        let monthEnd = DayStamp(year: today.year, month: today.month,
-                                day: DayStamp.daysInMonth(year: today.year, month: today.month, calendar: calendar))
-        for p in ledger.activePayments where !p.paused {
-            // Late ones from earlier months count too: they still have to be paid.
-            for _ in p.upcoming(limit: 40, until: monthEnd, calendar: calendar) {
-                s.remaining[p.currency, default: 0] += p.amount
-                s.remainingCount += 1
-            }
-        }
-        return s
     }
 }
 

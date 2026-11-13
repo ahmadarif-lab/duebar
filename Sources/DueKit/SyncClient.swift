@@ -78,26 +78,26 @@ public struct SyncClient: Sendable {
     private struct Request: Encodable { var cursor: Int64; var changes: [SyncRecord] }
 
     public func googleLogin(idToken: String) async throws -> AuthSession {
-        let r: AuthReply = try await decode(try await send("POST", "/v1/auth/google", json: ["idToken": idToken], token: nil))
+        let r: AuthReply = try decode(await send("POST", "/v1/auth/google", json: ["idToken": idToken], token: nil))
         return AuthSession(token: r.token, email: r.user.email, name: r.user.name, picture: r.user.picture)
     }
 
     /// Only works against a server started with DEV_AUTH=1 (local testing).
     public func devLogin(email: String) async throws -> AuthSession {
-        let r: AuthReply = try await decode(try await send("POST", "/v1/auth/dev", json: ["email": email], token: nil))
+        let r: AuthReply = try decode(await send("POST", "/v1/auth/dev", json: ["email": email], token: nil))
         return AuthSession(token: r.token, email: r.user.email, name: r.user.name, picture: r.user.picture)
     }
 
     /// The signed-in account's current name, email and photo.
     public func me(token: String) async throws -> AccountProfile {
-        try await decode(try await send("GET", "/v1/me", body: nil, token: token))
+        try decode(await send("GET", "/v1/me", body: nil, token: token))
     }
 
     public func logout(token: String) async throws { _ = try await send("POST", "/v1/logout", json: [String: String](), token: token) }
     public func deleteAccount(token: String) async throws { _ = try await send("DELETE", "/v1/account", json: nil as [String: String]?, token: token) }
 
     public func exchange(token: String, cursor: Int64, changes: [SyncRecord]) async throws -> SyncReply {
-        try await decode(try await send("POST", "/v1/sync", body: try JSONEncoder().encode(Request(cursor: cursor, changes: changes)), token: token))
+        try decode(await send("POST", "/v1/sync", body: try JSONEncoder().encode(Request(cursor: cursor, changes: changes)), token: token))
     }
 
     /// Pushes local changes and pulls remote ones until the server has nothing more.

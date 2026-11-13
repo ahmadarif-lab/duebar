@@ -13,7 +13,6 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(a.today.map(\.payment.name), ["now"])
         XCTAssertEqual(a.week.map(\.payment.name), ["soon"])
         XCTAssertEqual(a.later.map(\.payment.name), ["far"])
-        XCTAssertEqual(a.attentionCount, 3)
         XCTAssertEqual(a.dueSoonCount, 3)   // two overdue + today; "soon" is 5 days out but reminds only from 1 day
         XCTAssertEqual(a.next?.payment.name, "beyond")
     }
@@ -24,19 +23,6 @@ final class AgendaTests: XCTestCase {
         let a = Agenda.make(payments: [p, q], today: today)
         XCTAssertEqual(a.paused.count, 1)
         XCTAssertTrue(a.overdue.isEmpty && a.today.isEmpty && a.week.isEmpty && a.later.isEmpty)
-    }
-
-    func testMonthSummaryCountsPaidAndRemaining() {
-        var l = Ledger()
-        l.upsert(pay("listrik", 5, rule: RepeatRule(unit: .month), amount: 500))
-        l.upsert(pay("wifi", 20, amount: 300))
-        l.resolve("listrik", .paid)                       // Nov 5 paid, Dec 5 not this month
-        let s = MonthSummary.make(ledger: l, today: today)
-        XCTAssertEqual(s.paid["IDR"], 500)
-        XCTAssertEqual(s.remaining["IDR"], 300)
-        XCTAssertEqual(s.paidCount, 1)
-        XCTAssertEqual(s.remainingCount, 1)
-        XCTAssertEqual(s.progress, 0.5, accuracy: 0.001)
     }
 
     func testPlannerSchedulesOffsetsInFutureOnly() {

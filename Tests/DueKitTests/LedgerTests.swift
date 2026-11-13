@@ -68,4 +68,20 @@ final class LedgerTests: XCTestCase {
         XCTAssertEqual(l.payment("p1")?.resolvedCount, 0)
         XCTAssertTrue(l.history.isEmpty)
     }
+
+    func testHistoryGroupsByMonthNewestFirstAcrossYears() {
+        var l = Ledger()
+        l.upsert(sample(), now: Date(timeIntervalSince1970: 1000))
+        let cal = Calendar(identifier: .gregorian)
+        func at(_ y: Int, _ m: Int, _ d: Int) -> Date { cal.date(from: DateComponents(year: y, month: m, day: d, hour: 12))! }
+        for (i, when) in [at(2026, 11, 5), at(2026, 12, 20), at(2027, 1, 3), at(2026, 12, 2)].enumerated() {
+            l.record(PaymentEvent(paymentId: "p1", name: "Internet", kind: .paid, dueDate: DayStamp(year: 2026, month: 1, day: i + 1),
+                                  amount: 100, currency: "IDR", category: .internet, resolvedAt: when), now: when)
+        }
+        let months = l.historyByMonth(calendar: cal)
+        XCTAssertEqual(months.map(\.id), [202701, 202612, 202611])          // January 2027 comes first
+        XCTAssertEqual(months[1].events.count, 2)
+        XCTAssertEqual(months[1].events.map { cal.component(.day, from: $0.resolvedAt) }, [20, 2])   // newest first inside a month
+        XCTAssertEqual(l.historyByMonth(limit: 2, calendar: cal).flatMap(\.events).count, 2)
+    }
 }

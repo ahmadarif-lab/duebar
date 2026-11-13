@@ -70,6 +70,17 @@ public extension Payment {
         return event
     }
 
+    /// What saving the edit form does to the schedule. `opened` is the date the form opened with:
+    /// comparing against it (not `nextDue`, which is nil once a series has finished) means saving a
+    /// finished payment without touching its date leaves it finished. A changed date or rule starts
+    /// the series over from the chosen day.
+    mutating func applyEditedSchedule(openedWith opened: DayStamp?, chosen day: DayStamp, rule: RepeatRule) {
+        let dateChanged = opened.map { $0 != day } ?? true
+        let ruleChanged = repeatRule != rule
+        repeatRule = rule
+        if dateChanged || ruleChanged { reschedule(to: day) }
+    }
+
     /// Re-anchors the series on a new next due date (editing the date).
     mutating func reschedule(to day: DayStamp) {
         startDate = day

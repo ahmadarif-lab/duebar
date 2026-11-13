@@ -27,6 +27,8 @@ struct PaymentForm: View {
     @State private var paused = false
     @State private var confirmDelete = false
     @State private var loaded = false
+    /// The date the form opened with, to tell a real date change from an untouched field.
+    @State private var initialDue: DayStamp?
 
     enum RepeatChoice: String, CaseIterable, Identifiable {
         case once, daily, weekly, monthly, quarterly, semiannual, yearly, custom
@@ -230,7 +232,9 @@ struct PaymentForm: View {
         amountText = NSDecimalNumber(decimal: p.amount).stringValue
         currency = p.currency
         category = p.category
-        due = (p.nextDue() ?? p.startDate).date(hour: 12)
+        let opened = p.nextDue() ?? p.startDate
+        initialDue = opened
+        due = opened.date(hour: 12)
         offsets = Set(p.reminderOffsets)
         reminderTime = Calendar.current.date(bySettingHour: p.reminderMinute / 60, minute: p.reminderMinute % 60, second: 0, of: Date()) ?? Date()
         url = p.url
@@ -282,11 +286,7 @@ struct PaymentForm: View {
         let rule = buildRule()
         var p: Payment
         if var existing = original {
-            // Changing the date or the rule starts the series over from the date chosen.
-            let dateChanged = existing.nextDue() != day
-            let ruleChanged = existing.repeatRule != rule
-            existing.repeatRule = rule
-            if dateChanged || ruleChanged { existing.reschedule(to: day) }
+            existing.applyEditedSchedule(openedWith: initialDue, chosen: day, rule: rule)
             p = existing
         } else {
             p = Payment(name: name, amount: amount, startDate: day)
