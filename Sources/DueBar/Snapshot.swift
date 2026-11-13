@@ -41,6 +41,8 @@ enum Snapshot {
 
         // The real Settings window (its frame, not just the view), on the Reminders tab.
         Windows.showSettings(tab: .reminders)
+        // AppKit resizes a shown window on the next run loop turns, so wait before measuring.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         if let window = NSApp.windows.first(where: { $0.title == tr("DueBar Settings", "Pengaturan DueBar") }), let view = window.contentView {
             view.layoutSubtreeIfNeeded()
             print("settings window frame \(window.frame.size) content \(view.frame.size)")
@@ -51,6 +53,7 @@ enum Snapshot {
         }
         // The real editor window.
         Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "Listrik PLN" })
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         if let window = NSApp.windows.first(where: { $0.title == tr("Edit Payment", "Ubah Pembayaran") }), let view = window.contentView {
             view.layoutSubtreeIfNeeded()
             print("editor window frame \(window.frame.size) content \(view.frame.size)")

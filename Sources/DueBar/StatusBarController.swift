@@ -253,7 +253,7 @@ enum Windows {
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView:
+        window.contentView = host(
             PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).themedWindow())
         // With full-size content the content view is the whole frame.
         window.setFrame(NSRect(origin: .zero, size: PaymentForm.size), display: false)
@@ -277,7 +277,7 @@ enum Windows {
             window.titlebarAppearsTransparent = true
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView:
+            window.contentView = host(
                 SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
             // With full-size content the content view is the whole frame, so the frame is the design size.
             window.setFrame(NSRect(origin: .zero, size: SettingsView.size), display: false)
@@ -286,6 +286,16 @@ enum Windows {
             settings = window
         }
         present(settings!)
+    }
+
+    /// SwiftUI content for a full-size-content window. By default the hosting view adds the title
+    /// bar's height to its ideal size and AppKit grows the window to match once it is shown, which
+    /// leaves an empty strip at the bottom; the window keeps the size we give it instead.
+    private static func host<V: View>(_ root: V) -> NSHostingView<V> {
+        let hosting = NSHostingView(rootView: root)
+        hosting.sizingOptions = []
+        hosting.safeAreaRegions = []
+        return hosting
     }
 
     private static func present(_ window: NSWindow) {
