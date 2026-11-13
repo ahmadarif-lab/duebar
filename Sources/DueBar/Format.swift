@@ -1,0 +1,90 @@
+import DueKit
+import Foundation
+
+enum Money {
+    /// "Rp1.250.000" / "$12.50". Currencies without minor units in daily use
+    /// (IDR, JPY, KRW, VND) drop the decimals unless the amount has them.
+    static func format(_ amount: Decimal, currency: String) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = currency
+        f.locale = appLocale
+        let noMinor: Set<String> = ["IDR", "JPY", "KRW", "VND", "CLP", "ISK", "HUF"]
+        let fractional = (amount as NSDecimalNumber).doubleValue.truncatingRemainder(dividingBy: 1) != 0
+        let digits = noMinor.contains(currency) && !fractional ? 0 : (noMinor.contains(currency) ? 2 : nil)
+        if let digits { f.minimumFractionDigits = digits; f.maximumFractionDigits = digits }
+        return f.string(from: amount as NSDecimalNumber) ?? "\(currency) \(amount)"
+    }
+
+    /// Short form for the menu bar: "Rp350K", "Rp1,2M"; small amounts stay exact.
+    static func compact(_ amount: Decimal, currency: String) -> String {
+        let value = (amount as NSDecimalNumber).doubleValue
+        guard abs(value) >= 10_000 else { return format(amount, currency: currency) }
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = currency
+        f.locale = appLocale
+        let symbol = f.currencySymbol ?? currency
+        let (scaled, suffix) = abs(value) >= 1_000_000 ? (value / 1_000_000, "M") : (value / 1000, "K")
+        let n = NumberFormatter()
+        n.locale = appLocale
+        n.maximumFractionDigits = scaled < 10 ? 1 : 0
+        return symbol + (n.string(from: NSNumber(value: scaled)) ?? "\(scaled)") + suffix
+    }
+
+    static let commonCurrencies = ["IDR", "USD", "EUR", "SGD", "MYR", "JPY", "GBP", "AUD", "SAR"]
+}
+
+enum DueText {
+    static func relative(_ status: DueStatus) -> String {
+        switch status {
+        case .overdue(let d): return d == 1 ? tr("1 day late", "Telat 1 hari") : tr("\(d) days late", "Telat \(d) hari")
+        case .today: return tr("Today", "Hari ini")
+        case .upcoming(let d):
+            if d == 1 { return tr("Tomorrow", "Besok") }
+            return tr("In \(d) days", "\(d) hari lagi")
+        }
+    }
+
+    static func date(_ day: DayStamp) -> String {
+        let f = DateFormatter()
+        f.locale = appLocale
+        f.setLocalizedDateFormatFromTemplate(day.year == DayStamp.today().year ? "d MMM" : "d MMM yyyy")
+        return f.string(from: day.date())
+    }
+
+    static func repeatText(_ rule: RepeatRule) -> String {
+        guard rule.isRepeating else { return tr("One time", "Sekali") }
+        let n = rule.interval
+        switch (rule.unit, n) {
+        case (.day, 1): return tr("Daily", "Harian")
+        case (.week, 1): return tr("Weekly", "Mingguan")
+        case (.month, 1): return tr("Monthly", "Bulanan")
+        case (.month, 3): return tr("Every 3 months", "Tiap 3 bulan")
+        case (.month, 6): return tr("Every 6 months", "Tiap 6 bulan")
+        case (.year, 1): return tr("Yearly", "Tahunan")
+        case (.day, _): return tr("Every \(n) days", "Tiap \(n) hari")
+        case (.week, _): return tr("Every \(n) weeks", "Tiap \(n) minggu")
+        case (.month, _): return tr("Every \(n) months", "Tiap \(n) bulan")
+        case (.year, _): return tr("Every \(n) years", "Tiap \(n) tahun")
+        case (.none, _): return tr("One time", "Sekali")
+        }
+    }
+}
+
+extension PaymentCategory {
+    var title: String {
+        switch self {
+        case .utilities: return tr("Utilities", "Listrik & air")
+        case .internet: return tr("Internet & phone", "Internet & pulsa")
+        case .subscription: return tr("Subscription", "Langganan")
+        case .rent: return tr("Rent & housing", "Sewa & hunian")
+        case .loan: return tr("Loan & installment", "Cicilan")
+        case .insurance: return tr("Insurance", "Asuransi")
+        case .tax: return tr("Tax", "Pajak")
+        case .credit: return tr("Credit card", "Kartu kredit")
+        case .education: return tr("Education", "Pendidikan")
+        case .other: return tr("Other", "Lainnya")
+        }
+    }
+}

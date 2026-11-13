@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+dist/
+*.xcodeproj
+.DS_Store
+.vscode/
+node_modules/
+server/data/
+.env
