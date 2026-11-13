@@ -8,6 +8,7 @@ A macOS menu bar app that reminds you of payments before they're due: bills, sub
 
 - **Menu bar at a glance**: the next payment ("Listrik · tomorrow"), a count of what needs attention, or just an icon. A red icon means something is overdue.
 - **Dropdown**: this month's total left to pay and how much is already paid, then Overdue / Today / This week / Later. Hover a row for *Mark as paid*; the ⋯ menu has *Skip this time*, *Open payment link*, *Pause*, *Edit*, *Delete*. Every payment can be undone.
+- **One total in your main currency**: pick a main currency (say IDR) and payments in USD or others are converted at the daily rate from [ExchangeRate-API](https://www.exchangerate-api.com); the rates are only fetched while a payment uses another currency.
 - **Payments**: name, amount and currency, category, due date, notes, a payment link, and reminders.
 - **Repeat**: daily, weekly, monthly, every 3 or 6 months, yearly, or custom (every N days/weeks/months/years), ending never, on a date, or after N payments. Monthly bills on the 29th–31st keep their day (Jan 31 → Feb 28 → Mar 31).
 - **Reminders**: local notifications N days before and on the day, at a time you choose, with *Mark as paid* and *Remind in 1 hour* buttons. Late payments are nudged each morning for three days.

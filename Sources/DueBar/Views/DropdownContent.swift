@@ -45,14 +45,14 @@ struct DropdownContent: View {
     private func undoBar(_ event: PaymentEvent) -> some View {
         HStack {
             Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.positive)
-            Text(tr("\(event.name) marked paid", "\(event.name) ditandai lunas")).font(.system(size: 9)).lineLimit(1)
+            Text(tr("\(event.name) marked paid", "\(event.name) ditandai lunas")).font(.system(size: 11.5)).lineLimit(1)
             Spacer()
             Button(tr("Undo", "Urungkan")) {
                 store.undo(event.id)
                 undo = nil
             }
             .buttonStyle(.plain)
-            .font(.system(size: 9, weight: .semibold))
+            .font(.system(size: 11.5, weight: .semibold))
             .foregroundStyle(theme.primary)
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
@@ -61,13 +61,13 @@ struct DropdownContent: View {
 
     private func updateBar(_ release: Updater.Release) -> some View {
         HStack(spacing: 8.5) {
-            Image(systemName: "arrow.down.circle.fill").font(.system(size: 12.5)).foregroundStyle(theme.primary)
+            Image(systemName: "arrow.down.circle.fill").font(.system(size: 16)).foregroundStyle(theme.primary)
             VStack(alignment: .leading, spacing: 1) {
-                Text(tr("DueBar v\(release.version) is available", "DueBar v\(release.version) tersedia")).font(.system(size: 9, weight: .medium))
+                Text(tr("DueBar v\(release.version) is available", "DueBar v\(release.version) tersedia")).font(.system(size: 11.5, weight: .medium))
                 if let progress = updater.progressText {
-                    Text(progress).font(.system(size: 9)).foregroundStyle(theme.secondaryText)
+                    Text(progress).font(.system(size: 11)).foregroundStyle(theme.secondaryText)
                 } else if let error = updater.errorMessage {
-                    Text(error).font(.system(size: 9)).foregroundStyle(theme.critical).lineLimit(1)
+                    Text(error).font(.system(size: 11)).foregroundStyle(theme.critical).lineLimit(1)
                 }
             }
             Spacer()
@@ -75,7 +75,7 @@ struct DropdownContent: View {
                 ProgressView().controlSize(.small)
             } else {
                 Button(tr("Update", "Perbarui")) { Task { await updater.update() } }
-                    .buttonStyle(.plain).font(.system(size: 9, weight: .semibold)).foregroundStyle(theme.primary)
+                    .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primary)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
@@ -87,6 +87,7 @@ struct DropdownContent: View {
 
 private struct HomePage: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
     var goAll: () -> Void
     var markPaid: (String) -> Void
@@ -97,7 +98,7 @@ private struct HomePage: View {
         let hasPayments = !agenda.isEmpty
         VStack(spacing: 12) {
             HeaderRow(agenda: agenda, close: close)
-            OutstandingCard(outstanding: agenda.outstanding(), goAll: goAll)
+            OutstandingCard(outstanding: agenda.outstanding(in: UserDefaults.standard.mainCurrency, rates: rates.rates), goAll: goAll)
             if hasPayments {
                 upcoming(agenda)
                 if agenda.overdue.isEmpty && agenda.today.isEmpty && agenda.week.isEmpty { CaughtUpCard() }
@@ -113,14 +114,14 @@ private struct HomePage: View {
         if !items.isEmpty {
             VStack(spacing: 6.5) {
                 HStack {
-                    Text(tr("Upcoming", "Mendatang")).font(.system(size: 12.5, weight: .semibold))
+                    Text(tr("Upcoming", "Mendatang")).font(.system(size: 16, weight: .semibold))
                     Spacer()
                     Button(action: goAll) {
                         HStack(spacing: 3.5) {
                             Text(tr("View All", "Lihat Semua"))
-                            Image(systemName: "arrow.right").font(.system(size: 9, weight: .bold))
+                            Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold))
                         }
-                        .font(.system(size: 10, weight: .semibold)).foregroundStyle(theme.primary)
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
                     }
                     .buttonStyle(.plain)
                 }
@@ -145,13 +146,13 @@ private struct HeaderRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            BrandMark(size: 38.5)
+            BrandMark(size: 38)
             VStack(alignment: .leading, spacing: 1.5) {
-                Text("DueBar").font(.system(size: 12.5, weight: .bold))
-                subtitle.font(.system(size: 9.5))
+                Text("DueBar").font(.system(size: 16, weight: .bold))
+                subtitle.font(.system(size: 12))
             }
             Spacer()
-            IconButton(symbol: "gearshape", help: tr("Settings", "Pengaturan"), size: 28.5) { close(); Windows.showSettings() }
+            IconButton(symbol: "gearshape", help: tr("Settings", "Pengaturan"), size: 28) { close(); Windows.showSettings() }
         }
         .padding(.horizontal, 3.5)
     }
@@ -182,23 +183,30 @@ private struct OutstandingCard: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Brand.gradient)
-                    Image(systemName: "creditcard.fill").font(.system(size: 15.5, weight: .semibold)).foregroundStyle(.white)
+                    Image(systemName: "creditcard.fill").font(.system(size: 19.5, weight: .semibold)).foregroundStyle(.white)
                 }
                 .frame(width: 43.5, height: 43.5)
                 VStack(alignment: .leading, spacing: 1.5) {
-                    Text(tr("Total Outstanding", "Total Tertunggak")).font(.system(size: 10)).foregroundStyle(theme.secondaryText)
-                    ForEach(amountCurrencies, id: \.self) { currency in
-                        Text(Money.format(outstanding.totals[currency] ?? 0, currency: currency))
-                            .font(.system(size: 18.5, weight: .bold, design: .rounded)).monospacedDigit()
-                            .lineLimit(1).minimumScaleFactor(0.7)
+                    Text(tr("Total Outstanding", "Total Tertunggak")).font(.system(size: 12.5)).foregroundStyle(theme.secondaryText)
+                    Text(Money.formatTotal(outstanding.total, currency: outstanding.currency))
+                        .font(.system(size: 21, weight: .bold, design: .rounded)).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                    if outstanding.includesConverted {
+                        Text(tr("Includes conversions", "Termasuk konversi"))
+                            .font(.system(size: 11)).foregroundStyle(theme.secondaryText).lineLimit(1)
+                    }
+                    // A currency with no exchange rate yet is shown as it is rather than dropped.
+                    ForEach(outstanding.unconverted.keys.sorted(), id: \.self) { currency in
+                        Text("+ " + Money.formatTotal(outstanding.unconverted[currency] ?? 0, currency: currency))
+                            .font(.system(size: 11.5, weight: .medium)).foregroundStyle(theme.warning).monospacedDigit()
                     }
                 }
                 Spacer(minLength: 4)
                 HStack(spacing: 3.5) {
                     Text(outstanding.count == 1 ? tr("1 item", "1 item") : tr("\(outstanding.count) items", "\(outstanding.count) item"))
-                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold))
                 }
-                .font(.system(size: 10, weight: .semibold)).foregroundStyle(theme.primary)
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.primary)
                 .padding(.horizontal, 10).padding(.vertical, 6.5)
                 .background(Capsule().fill(theme.primary.opacity(0.16)))
             }
@@ -207,12 +215,6 @@ private struct OutstandingCard: View {
         }
         .buttonStyle(.plain)
     }
-
-    private var amountCurrencies: [String] {
-        let list = outstanding.currencies
-        if list.isEmpty { return [UserDefaults.standard.string(forKey: SettingsKey.defaultCurrency) ?? "IDR"] }
-        return Array(list.prefix(2))
-    }
 }
 
 private struct CaughtUpCard: View {
@@ -220,14 +222,14 @@ private struct CaughtUpCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 24)).foregroundStyle(theme.positive)
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 30)).foregroundStyle(theme.positive)
             VStack(alignment: .leading, spacing: 1.5) {
-                Text(tr("All caught up!", "Semua beres!")).font(.system(size: 11.5, weight: .bold))
+                Text(tr("All caught up!", "Semua beres!")).font(.system(size: 14, weight: .bold))
                 Text(tr("No more payments due this week.", "Tidak ada lagi pembayaran minggu ini."))
-                    .font(.system(size: 9)).foregroundStyle(theme.secondaryText)
+                    .font(.system(size: 11.5)).foregroundStyle(theme.secondaryText)
             }
             Spacer()
-            Text("🎉").font(.system(size: 21))
+            Text("🎉").font(.system(size: 26.5))
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(theme.positive.opacity(theme.isDark ? 0.16 : 0.13)))
@@ -242,12 +244,12 @@ private struct EmptyCard: View {
         VStack(spacing: 8.5) {
             Text(tr("Add bills, subscriptions and installments to get reminded before they're due.",
                     "Tambahkan tagihan, langganan, dan cicilan supaya diingatkan sebelum jatuh tempo."))
-                .font(.system(size: 9.5)).foregroundStyle(theme.secondaryText).multilineTextAlignment(.center)
+                .font(.system(size: 12)).foregroundStyle(theme.secondaryText).multilineTextAlignment(.center)
             Button {
                 close(); Windows.showEditor(payment: nil)
             } label: {
                 Label(tr("Add your first payment", "Tambah pembayaran pertama"), systemImage: "plus")
-                    .font(.system(size: 10, weight: .semibold)).foregroundStyle(.white)
+                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 13.5).padding(.vertical, 7.5)
                     .background(Capsule().fill(Brand.gradient))
             }
@@ -271,12 +273,12 @@ private struct ListPage: View {
         VStack(spacing: 10) {
             HStack(spacing: 6.5) {
                 Button { page = .home } label: {
-                    Image(systemName: "chevron.left").font(.system(size: 10, weight: .bold))
+                    Image(systemName: "chevron.left").font(.system(size: 12.5, weight: .bold))
                         .frame(width: 28.5, height: 28.5).background(Circle().fill(theme.track))
                 }
                 .buttonStyle(.plain).help(tr("Back", "Kembali"))
                 Text(page == .all ? tr("All payments", "Semua pembayaran") : tr("History", "Riwayat"))
-                    .font(.system(size: 12.5, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                 Spacer()
                 tabButton(tr("Upcoming", "Mendatang"), .all)
                 tabButton(tr("History", "Riwayat"), .history)
@@ -293,7 +295,7 @@ private struct ListPage: View {
     private func tabButton(_ title: String, _ value: DropdownContent.Page) -> some View {
         Button { page = value } label: {
             Text(title)
-                .font(.system(size: 9, weight: page == value ? .semibold : .regular))
+                .font(.system(size: 11, weight: page == value ? .semibold : .regular))
                 .padding(.horizontal, 8.5).padding(.vertical, 5)
                 .background(Capsule().fill(page == value ? theme.primary.opacity(0.18) : .clear))
                 .foregroundStyle(page == value ? theme.primary : theme.secondaryText)
@@ -304,6 +306,7 @@ private struct ListPage: View {
 
 struct UpcomingList: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
     var markPaid: (String) -> Void
     var close: () -> Void
@@ -312,7 +315,7 @@ struct UpcomingList: View {
         let agenda = store.agenda
         if agenda.isEmpty {
             Text(tr("No payments yet", "Belum ada pembayaran"))
-                .font(.system(size: 9.5)).foregroundStyle(theme.secondaryText)
+                .font(.system(size: 12)).foregroundStyle(theme.secondaryText)
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
             ScrollView {
@@ -335,9 +338,9 @@ struct UpcomingList: View {
         if !items.isEmpty {
             VStack(spacing: 5) {
                 HStack {
-                    Text(title).font(.system(size: 10, weight: .semibold)).foregroundStyle(color ?? theme.text)
+                    Text(title).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(color ?? theme.text)
                     Spacer()
-                    if let total = total(items) { Text(total).font(.system(size: 9, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit() }
+                    if let total = total(items) { Text(total).font(.system(size: 11, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit() }
                 }
                 .padding(.horizontal, 5)
                 VStack(spacing: 0) {
@@ -355,18 +358,18 @@ struct UpcomingList: View {
     private func pausedBox(_ payments: [Payment]) -> some View {
         VStack(spacing: 5) {
             HStack {
-                Text(tr("Paused", "Dijeda")).font(.system(size: 10, weight: .semibold)).foregroundStyle(theme.secondaryText)
+                Text(tr("Paused", "Dijeda")).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(theme.secondaryText)
                 Spacer()
             }
             .padding(.horizontal, 5)
             VStack(spacing: 6.5) {
                 ForEach(payments) { p in
                     HStack(spacing: 8.5) {
-                        CategoryBadge(category: p.category, size: 28.5).opacity(0.5)
-                        Text(p.name).font(.system(size: 10)).foregroundStyle(theme.secondaryText).lineLimit(1)
+                        CategoryBadge(category: p.category, size: 28).opacity(0.5)
+                        Text(p.name).font(.system(size: 12.5)).foregroundStyle(theme.secondaryText).lineLimit(1)
                         Spacer()
                         Button(tr("Resume", "Lanjutkan")) { store.setPaused(p.id, false) }
-                            .buttonStyle(.plain).font(.system(size: 9, weight: .semibold)).foregroundStyle(theme.primary)
+                            .buttonStyle(.plain).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(theme.primary)
                     }
                 }
             }
@@ -375,14 +378,15 @@ struct UpcomingList: View {
     }
 
     private func total(_ items: [AgendaItem]) -> String? {
-        let currencies = Set(items.map(\.payment.currency))
-        guard currencies.count == 1, let c = currencies.first else { return "\(items.count)" }
-        return Money.format(items.reduce(0) { $0 + $1.payment.amount }, currency: c)
+        let main = UserDefaults.standard.mainCurrency
+        let sum = Money.total(items.map { ($0.payment.amount, $0.payment.currency) }, in: main, rates: rates.rates)
+        return sum.complete ? Money.formatTotal(sum.total, currency: main) : "\(items.count)"
     }
 }
 
 struct PaymentRow: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
     var item: AgendaItem
     var markPaid: (String) -> Void
@@ -392,23 +396,28 @@ struct PaymentRow: View {
     var body: some View {
         let p = item.payment
         HStack(spacing: 10) {
-            CategoryBadge(category: p.category, size: 38.5)
+            CategoryBadge(category: p.category, size: 38)
             VStack(alignment: .leading, spacing: 2.5) {
-                Text(p.name).font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                Text(p.name).font(.system(size: 13.5, weight: .semibold)).lineLimit(1)
                 HStack(spacing: 4) {
-                    Image(systemName: p.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 9)).foregroundStyle(theme.primary)
+                    Image(systemName: p.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 11)).foregroundStyle(theme.primary)
                     Text(DueText.relative(item.status)).foregroundStyle(statusColor)
                     Text("·").foregroundStyle(theme.secondaryText)
                     Text(DueText.date(item.due)).foregroundStyle(theme.secondaryText)
                 }
-                .font(.system(size: 9)).lineLimit(1)
+                .font(.system(size: 11)).lineLimit(1)
             }
             Spacer(minLength: 6)
             if hovering {
                 IconButton(symbol: "checkmark.circle", help: tr("Mark as paid", "Tandai lunas"), tint: theme.positive, size: 27) { markPaid(p.id) }
                 menu
             } else {
-                Text(Money.format(p.amount, currency: p.currency)).font(.system(size: 10.5, weight: .semibold)).monospacedDigit()
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(Money.format(p.amount, currency: p.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+                    if let converted = convertedText(p) {
+                        Text(converted).font(.system(size: 11)).foregroundStyle(theme.secondaryText).monospacedDigit()
+                    }
+                }
             }
         }
         .padding(.vertical, 7.5).padding(.horizontal, 6.5)
@@ -417,6 +426,13 @@ struct PaymentRow: View {
         .onHover { hovering = $0 }
         .onTapGesture(count: 2) { edit() }
         .contextMenu { menuItems }
+    }
+
+    /// "≈ Rp 238.000" under an amount in another currency, once there is a rate for it.
+    private func convertedText(_ p: Payment) -> String? {
+        let main = UserDefaults.standard.mainCurrency
+        guard p.currency != main, let value = rates.rates?.convert(p.amount, from: p.currency, to: main) else { return nil }
+        return "≈ " + Money.formatTotal(value, currency: main)
     }
 
     private var statusColor: Color {
@@ -429,7 +445,7 @@ struct PaymentRow: View {
 
     private var menu: some View {
         Menu { menuItems } label: {
-            Image(systemName: "ellipsis").font(.system(size: 9, weight: .bold)).foregroundStyle(theme.secondaryText)
+            Image(systemName: "ellipsis").font(.system(size: 11.5, weight: .bold)).foregroundStyle(theme.secondaryText)
                 .frame(width: 25, height: 27)
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 25)
@@ -457,13 +473,14 @@ struct PaymentRow: View {
 
 struct HistoryList: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
     @Environment(\.panelTheme) private var theme
 
     var body: some View {
         let events = Array(store.history.prefix(80))
         if events.isEmpty {
             Text(tr("Paid payments will show up here.", "Pembayaran yang sudah lunas muncul di sini."))
-                .font(.system(size: 9.5)).foregroundStyle(theme.secondaryText)
+                .font(.system(size: 12)).foregroundStyle(theme.secondaryText)
                 .frame(maxWidth: .infinity).padding(.vertical, 23.5).cardBackground()
         } else {
             let groups = Dictionary(grouping: events) { String($0.resolvedAt.formatted(.dateTime.year().month(.twoDigits))) }
@@ -473,9 +490,9 @@ struct HistoryList: View {
                         let rows = groups[key] ?? []
                         VStack(spacing: 5) {
                             HStack {
-                                Text(Self.monthTitle(rows[0].resolvedAt)).font(.system(size: 10, weight: .semibold))
+                                Text(Self.monthTitle(rows[0].resolvedAt)).font(.system(size: 12.5, weight: .semibold))
                                 Spacer()
-                                if let total = Self.total(rows) { Text(total).font(.system(size: 9, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit() }
+                                if let total = total(rows) { Text(total).font(.system(size: 11, weight: .medium)).foregroundStyle(theme.secondaryText).monospacedDigit() }
                             }
                             .padding(.horizontal, 5)
                             VStack(spacing: 0) {
@@ -500,13 +517,13 @@ struct HistoryList: View {
         HStack(spacing: 10) {
             CategoryBadge(category: e.category, size: 33.5)
             VStack(alignment: .leading, spacing: 1.5) {
-                Text(e.name).font(.system(size: 10, weight: .semibold)).lineLimit(1)
+                Text(e.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Text("\(e.kind == .paid ? tr("Paid", "Lunas") : tr("Skipped", "Dilewati")) · \(DueText.date(DayStamp(e.resolvedAt)))")
-                    .font(.system(size: 9)).foregroundStyle(e.kind == .paid ? theme.positive : theme.secondaryText)
+                    .font(.system(size: 11)).foregroundStyle(e.kind == .paid ? theme.positive : theme.secondaryText)
             }
             Spacer()
             Text(Money.format(e.amount, currency: e.currency))
-                .font(.system(size: 10, weight: .semibold)).monospacedDigit()
+                .font(.system(size: 13, weight: .semibold)).monospacedDigit()
                 .foregroundStyle(e.kind == .paid ? theme.text : theme.secondaryText)
             if canUndo(e) {
                 IconButton(symbol: "arrow.uturn.backward", help: tr("Undo", "Urungkan"), size: 25) { store.undo(e.id) }
@@ -528,11 +545,12 @@ struct HistoryList: View {
         return f.string(from: date).capitalized
     }
 
-    private static func total(_ rows: [PaymentEvent]) -> String? {
+    private func total(_ rows: [PaymentEvent]) -> String? {
+        let main = UserDefaults.standard.mainCurrency
         let paid = rows.filter { $0.kind == .paid }
-        let currencies = Set(paid.map(\.currency))
-        guard currencies.count == 1, let c = currencies.first else { return nil }
-        return Money.format(paid.reduce(0) { $0 + $1.amount }, currency: c)
+        guard !paid.isEmpty else { return nil }
+        let sum = Money.total(paid.map { ($0.amount, $0.currency) }, in: main, rates: rates.rates)
+        return sum.complete ? Money.formatTotal(sum.total, currency: main) : nil
     }
 }
 
@@ -566,9 +584,9 @@ private struct FooterMenu: View {
                 close(); Windows.showSettings(tab: .account)
             } label: {
                 HStack(spacing: 8.5) {
-                    AccountAvatar(session: session, size: 23.5)
+                    AccountAvatar(session: session, size: 24)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(session.email).font(.system(size: 9, weight: .medium)).lineLimit(1).truncationMode(.middle)
+                        Text(session.email).font(.system(size: 11.5, weight: .medium)).lineLimit(1).truncationMode(.middle)
                         statusLine
                     }
                     Spacer()
@@ -583,7 +601,7 @@ private struct FooterMenu: View {
             } label: {
                 HStack(spacing: 10) {
                     GoogleLogo(size: 17).frame(width: 20)
-                    Text(tr("Sign in with Google", "Masuk dengan Google")).font(.system(size: 10.5))
+                    Text(tr("Sign in with Google", "Masuk dengan Google")).font(.system(size: 13))
                     Spacer()
                 }
                 .padding(.horizontal, 8.5).padding(.vertical, 7.5)
@@ -598,14 +616,14 @@ private struct FooterMenu: View {
         switch sync.state {
         case .syncing:
             HStack(spacing: 3.5) { ProgressView().controlSize(.mini); Text(tr("Syncing…", "Menyinkronkan…")) }
-                .font(.system(size: 9)).foregroundStyle(theme.secondaryText)
+                .font(.system(size: 11)).foregroundStyle(theme.secondaryText)
         case .failed(let why):
             Label(tr("Sync failed", "Sinkron gagal"), systemImage: "exclamationmark.icloud")
-                .font(.system(size: 9)).foregroundStyle(theme.critical).help(why)
+                .font(.system(size: 11)).foregroundStyle(theme.critical).help(why)
         default:
             Label(sync.lastSync.map { tr("Synced \($0.formatted(.relative(presentation: .named)))", "Tersinkron \($0.formatted(.relative(presentation: .named)))") } ?? tr("Synced", "Tersinkron"),
                   systemImage: "checkmark.icloud")
-                .font(.system(size: 9)).foregroundStyle(theme.secondaryText)
+                .font(.system(size: 11)).foregroundStyle(theme.secondaryText)
         }
     }
 }
@@ -622,10 +640,10 @@ private struct MenuRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: symbol).font(.system(size: 11.5)).frame(width: 20)
-                Text(title).font(.system(size: 10.5))
+                Image(systemName: symbol).font(.system(size: 14)).frame(width: 20)
+                Text(title).font(.system(size: 13))
                 Spacer()
-                Text(shortcut).font(.system(size: 9.5)).foregroundStyle(theme.secondaryText)
+                Text(shortcut).font(.system(size: 12)).foregroundStyle(theme.secondaryText)
             }
             .padding(.horizontal, 8.5).padding(.vertical, 7.5)
             .background(RoundedRectangle(cornerRadius: 8.5, style: .continuous).fill(hovering ? theme.track : .clear))

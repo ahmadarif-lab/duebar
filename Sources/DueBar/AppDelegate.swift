@@ -9,11 +9,13 @@ final class AppContext {
     let store: Store
     let sync: SyncService
     let notifier: Notifier
+    let rates: RatesService
 
     init() {
         store = Store()
         sync = SyncService(store: store)
         notifier = Notifier(store: store)
+        rates = RatesService(store: store)
     }
 }
 
@@ -34,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.onChange = { [weak context] in
             context?.sync.localChanged()
             context?.notifier.reschedule()
+            Task { await context?.rates.refreshIfNeeded() }
         }
         store.onChangeAfterRemote = { [weak context] in context?.notifier.reschedule() }
 
@@ -45,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = Self.mainMenu()
 
         _ = Updater.shared
+        context.rates.start()
         context.notifier.requestAuthorization()
         context.notifier.reschedule(force: true)
         scheduleDayRollover()
@@ -53,6 +57,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NotificationCenter.default.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.dayRolledOver() }
+        }
+        // A new main currency may need rates that are not cached yet.
+        NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak context] _ in
+            Task { @MainActor in await context?.rates.refreshIfNeeded() }
         }
         NotificationCenter.default.addObserver(forName: .openDueBarPanel, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.statusBar?.openPanel() }

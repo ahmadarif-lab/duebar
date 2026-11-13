@@ -47,6 +47,9 @@ extension UserDefaults {
         ])
     }
 
+    /// The currency totals are shown in (and the default for new payments).
+    var mainCurrency: String { string(forKey: SettingsKey.defaultCurrency) ?? "IDR" }
+
     var defaultOffsets: [Int] {
         (string(forKey: SettingsKey.defaultOffsets) ?? "1,0").split(separator: ",").compactMap { Int($0) }
     }

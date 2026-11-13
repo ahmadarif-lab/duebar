@@ -167,6 +167,8 @@ private struct AboutView: View {
                 Link(tr("Terms of Service", "Syarat & Ketentuan"), destination: URL(string: "https://apps.ahmadarif.id/duebar/terms/")!)
             }
             .font(.system(size: 9)).frame(maxWidth: .infinity, alignment: .leading)
+            Link(tr("Exchange rates by ExchangeRate-API", "Kurs dari ExchangeRate-API"), destination: URL(string: "https://www.exchangerate-api.com")!)
+                .font(.system(size: 11)).padding(.top, 6)
             Text("© 2026 Ahmad Arif · MIT License").font(.system(size: 9)).foregroundStyle(.secondary).padding(.top, 6.5)
         }
         .padding(17)
@@ -177,6 +179,7 @@ private struct AboutView: View {
 // MARK: - General
 
 private struct GeneralPane: View {
+    @EnvironmentObject var rates: RatesService
     @AppStorage(SettingsKey.language) private var language = "system"
     @AppStorage(SettingsKey.theme) private var theme = PanelTheme.systemID
     @AppStorage(SettingsKey.menuBarStyle) private var style = MenuBarStyle.next.rawValue
@@ -184,6 +187,10 @@ private struct GeneralPane: View {
     @AppStorage(SettingsKey.showInDock) private var showInDock = false
     @AppStorage(SettingsKey.horizonDays) private var horizon = 60
     @State private var loginItem = LoginItem.isEnabled
+
+    private var currencyChoices: [String] {
+        Money.commonCurrencies.contains(currency) ? Money.commonCurrencies : Money.commonCurrencies + [currency]
+    }
 
     var body: some View {
         Form {
@@ -209,9 +216,19 @@ private struct GeneralPane: View {
                     Text("English").tag("en")
                     Text("Bahasa Indonesia").tag("id")
                 }
-                Picker(tr("Default currency", "Mata uang bawaan"), selection: $currency) {
-                    ForEach(Money.commonCurrencies, id: \.self) { Text($0).tag($0) }
+                Picker(tr("Main currency", "Mata uang utama"), selection: $currency) {
+                    ForEach(currencyChoices, id: \.self) { Text($0).tag($0) }
                 }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tr("Totals are shown in this currency, and new payments start with it. Payments in another currency are converted at the latest exchange rate.",
+                            "Total ditampilkan dalam mata uang ini dan pembayaran baru memakainya. Pembayaran dalam mata uang lain dikonversi dengan kurs terbaru."))
+                    if let rates = rates.rates {
+                        Text(tr("Rates updated \(rates.fetchedAt.formatted(.relative(presentation: .named))).", "Kurs diperbarui \(rates.fetchedAt.formatted(.relative(presentation: .named)))."))
+                    } else if rates.failed {
+                        Text(tr("Couldn't fetch exchange rates; they are fetched again when needed.", "Gagal mengambil kurs; akan dicoba lagi saat diperlukan."))
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
             Section(tr("System", "Sistem")) {
                 Toggle(tr("Start at login", "Buka saat login"), isOn: Binding(

@@ -147,6 +147,7 @@ final class StatusBarController: NSObject {
         let root = Dropdown(close: { [weak self] in self?.close() })
             .environmentObject(context.store)
             .environmentObject(context.sync)
+            .environmentObject(context.rates)
         let panel = DropdownPanel(
             content: root,
             anchor: NSPoint(x: window.frame.midX, y: window.frame.minY - 3),
@@ -254,7 +255,7 @@ enum Windows {
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.contentView = host(
-            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).themedWindow())
+            PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).environmentObject(context.rates).themedWindow())
         // With full-size content the content view is the whole frame.
         window.setFrame(NSRect(origin: .zero, size: PaymentForm.size), display: false)
         window.center()
@@ -278,7 +279,7 @@ enum Windows {
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.contentView = host(
-                SettingsView().environmentObject(context.store).environmentObject(context.sync).themedWindow())
+                SettingsView().environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow())
             // With full-size content the content view is the whole frame, so the frame is the design size.
             window.setFrame(NSRect(origin: .zero, size: SettingsView.size), display: false)
             window.center()

@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Add / edit a payment in its own window.
 struct PaymentForm: View {
+    @EnvironmentObject var rates: RatesService
     @Environment(\.themeAccent) private var accent
     @EnvironmentObject var store: Store
     var original: Payment?
@@ -80,7 +81,7 @@ struct PaymentForm: View {
                         .labelsHidden().frame(width: 84)
                     }
                     if let amount = parsedAmount, amount > 0 {
-                        LabeledContent("") { Text(Money.format(amount, currency: currency)).foregroundStyle(.secondary).font(.callout) }
+                        LabeledContent("") { Text(amountHint(amount)).foregroundStyle(.secondary).font(.callout) }
                     }
                 }
 
@@ -183,6 +184,17 @@ struct PaymentForm: View {
         }
         .padding(.leading, 80).padding(.trailing, 16)
         .frame(height: 50)
+    }
+
+    /// "US$14.99 ≈ Rp 242.000" when the amount is in another currency than the main one.
+    private func amountHint(_ amount: Decimal) -> String {
+        let main = UserDefaults.standard.mainCurrency
+        let own = Money.format(amount, currency: currency)
+        guard currency != main else { return own }
+        if let converted = rates.rates?.convert(amount, from: currency, to: main) {
+            return "\(own) ≈ \(Money.formatTotal(converted, currency: main))"
+        }
+        return own + " · " + tr("no exchange rate yet", "belum ada kurs")
     }
 
     private var currencyChoices: [String] {

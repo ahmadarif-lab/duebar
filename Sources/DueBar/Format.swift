@@ -16,6 +16,16 @@ enum Money {
         return f.string(from: amount as NSDecimalNumber) ?? "\(currency) \(amount)"
     }
 
+    /// For totals and converted amounts: rounded to the currency's usual precision first (IDR to
+    /// whole rupiah, others to cents), so a conversion never shows "Rp 242.088,50".
+    static func formatTotal(_ amount: Decimal, currency: String) -> String {
+        let noMinor: Set<String> = ["IDR", "JPY", "KRW", "VND", "CLP", "ISK", "HUF"]
+        var value = amount
+        var source = amount
+        NSDecimalRound(&value, &source, noMinor.contains(currency) ? 0 : 2, .plain)
+        return format(value, currency: currency)
+    }
+
     /// Short form for the menu bar: "Rp350K", "Rp1,2M"; small amounts stay exact.
     static func compact(_ amount: Decimal, currency: String) -> String {
         let value = (amount as NSDecimalNumber).doubleValue
@@ -30,6 +40,15 @@ enum Money {
         n.locale = appLocale
         n.maximumFractionDigits = scaled < 10 ? 1 : 0
         return symbol + (n.string(from: NSNumber(value: scaled)) ?? "\(scaled)") + suffix
+    }
+
+    /// Adds amounts in different currencies as one amount in `currency` (see ExchangeRates.total).
+    /// Without rates only amounts already in `currency` count and the total is incomplete.
+    static func total(_ amounts: [(Decimal, String)], in currency: String, rates: ExchangeRates?) -> (total: Decimal, complete: Bool) {
+        let entries = amounts.map { (amount: $0.0, currency: $0.1) }
+        if let rates { return rates.total(of: entries, in: currency) }
+        let same = entries.filter { $0.currency == currency }
+        return (same.reduce(0) { $0 + $1.amount }, same.count == entries.count)
     }
 
     static let commonCurrencies = ["IDR", "USD", "EUR", "SGD", "MYR", "JPY", "GBP", "AUD", "SAR"]

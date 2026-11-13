@@ -8,20 +8,22 @@ import SwiftUI
 enum Snapshot {
     static func run(into dir: URL, context: AppContext) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Fixed sample rates: snapshots never touch the network.
+        context.rates.setForPreview(ExchangeRates(rates: ["IDR": 16150, "EUR": Decimal(string: "0.92")!, "SGD": Decimal(string: "1.3")!]))
         let themes = (ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_THEMES"] ?? "dark,light").split(separator: ",").map(String.init)
         for theme in themes {
             UserDefaults.standard.set(theme, forKey: SettingsKey.theme)
             let scheme: ColorScheme = theme == "light" ? .light : .dark
-            write(Dropdown(close: {}).environmentObject(context.store).environmentObject(context.sync),
+            write(Dropdown(close: {}).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates),
                   scheme: scheme, to: dir.appendingPathComponent("dropdown-\(theme).png"))
-            write(Dropdown(close: {}, initialPage: .all).environmentObject(context.store).environmentObject(context.sync),
+            write(Dropdown(close: {}, initialPage: .all).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates),
                   scheme: scheme, to: dir.appendingPathComponent("all-\(theme).png"))
-            write(Dropdown(close: {}, initialPage: .history).environmentObject(context.store).environmentObject(context.sync),
+            write(Dropdown(close: {}, initialPage: .history).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates),
                   scheme: scheme, to: dir.appendingPathComponent("history-\(theme).png"))
-            let sample = context.store.ledger.allPayments.first { $0.name == "Listrik PLN" }
-            write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
+            let sample = context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" }
+            write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).environmentObject(context.rates).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
             for (name, tab) in [("general", SettingsTab.general), ("account", .account)] {
-                write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).themedWindow(), scheme: scheme,
+                write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow(), scheme: scheme,
                       to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
             }
         }
@@ -52,7 +54,7 @@ enum Snapshot {
             }
         }
         // The real editor window.
-        Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "Listrik PLN" })
+        Windows.showEditor(payment: context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" })
         RunLoop.main.run(until: Date().addingTimeInterval(0.6))
         if let window = NSApp.windows.first(where: { $0.title == tr("Edit Payment", "Ubah Pembayaran") }), let view = window.contentView {
             view.layoutSubtreeIfNeeded()
