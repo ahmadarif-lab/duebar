@@ -22,6 +22,8 @@ enum Snapshot {
               to: dir.appendingPathComponent("form.png"))
         write(SettingsView().environmentObject(context.store).environmentObject(context.sync), scheme: .light,
               to: dir.appendingPathComponent("settings.png"))
+        write(SettingsView(initialTab: .account).environmentObject(context.store).environmentObject(context.sync), scheme: .dark,
+              to: dir.appendingPathComponent("settings-account.png"))
         NSApp.terminate(nil)
     }
 

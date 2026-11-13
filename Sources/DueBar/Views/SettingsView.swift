@@ -4,18 +4,22 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UserNotifications
 
+enum SettingsTab: Hashable { case general, reminders, account }
+
 struct SettingsView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var sync: SyncService
+    @State private var selection: SettingsTab
+
+    init(initialTab: SettingsTab = .general) { _selection = State(initialValue: initialTab) }
 
     var body: some View {
-        TabView {
-            GeneralPane().tabItem { Label(tr("General", "Umum"), systemImage: "gearshape") }
-            NotificationsPane().tabItem { Label(tr("Reminders", "Pengingat"), systemImage: "bell") }
-            AccountPane().tabItem { Label(tr("Account", "Akun"), systemImage: "person.crop.circle") }
-            DataPane().tabItem { Label(tr("Data", "Data"), systemImage: "externaldrive") }
+        TabView(selection: $selection) {
+            GeneralPane().tabItem { Label(tr("General", "Umum"), systemImage: "gearshape") }.tag(SettingsTab.general)
+            NotificationsPane().tabItem { Label(tr("Reminders", "Pengingat"), systemImage: "bell") }.tag(SettingsTab.reminders)
+            AccountPane().tabItem { Label(tr("Account", "Akun"), systemImage: "person.crop.circle") }.tag(SettingsTab.account)
         }
-        .frame(width: 560, height: 520)
+        .frame(width: 560, height: 600)
         .padding(.top, 12)
     }
 }
@@ -203,6 +207,7 @@ private struct AccountPane: View {
                     }
                 }
             }
+            DataSections()
             if sync.isSignedIn {
                 Section(tr("Danger zone", "Zona bahaya")) {
                     Button(tr("Delete my account and cloud data…", "Hapus akun dan data cloud…"), role: .destructive) { confirmDelete = true }
@@ -228,31 +233,29 @@ private struct AccountPane: View {
 
 // MARK: - Data
 
-private struct DataPane: View {
+/// Export, backup and storage, shown under the account in the Account tab.
+private struct DataSections: View {
     @EnvironmentObject var store: Store
     @State private var message: String?
 
     var body: some View {
-        Form {
-            Section(tr("Export", "Ekspor")) {
-                HStack {
-                    Button(tr("Export CSV…", "Ekspor CSV…")) { exportCSV() }
-                    Button(tr("Back up (JSON)…", "Cadangkan (JSON)…")) { exportBackup() }
+        Section(tr("Data", "Data")) {
+            HStack {
+                Button(tr("Export CSV…", "Ekspor CSV…")) { exportCSV() }
+                Button(tr("Back up…", "Cadangkan…")) { exportBackup() }
+                Button(tr("Restore…", "Pulihkan…")) { restore() }
+            }
+            Text(tr("CSV opens in Numbers or Excel. The JSON backup restores everything, including history.", "CSV bisa dibuka di Numbers atau Excel. Cadangan JSON memulihkan semuanya, termasuk riwayat."))
+                .font(.callout).foregroundStyle(.secondary)
+            LabeledContent(tr("On this Mac", "Di Mac ini")) {
+                HStack(spacing: 10) {
+                    Text(tr("\(store.ledger.allPayments.count) payments · \(store.history.count) history", "\(store.ledger.allPayments.count) pembayaran · \(store.history.count) riwayat"))
+                        .foregroundStyle(.secondary)
+                    Button(tr("Show in Finder", "Tampilkan di Finder")) { NSWorkspace.shared.open(Store.defaultDirectory) }
                 }
-                Text(tr("CSV opens in Numbers or Excel. The JSON backup restores everything, including history.", "CSV bisa dibuka di Numbers atau Excel. Cadangan JSON memulihkan semuanya, termasuk riwayat."))
-                    .font(.callout).foregroundStyle(.secondary)
-            }
-            Section(tr("Restore", "Pulihkan")) {
-                Button(tr("Restore from backup…", "Pulihkan dari cadangan…")) { restore() }
-            }
-            Section(tr("Storage", "Penyimpanan")) {
-                LabeledContent(tr("Payments", "Pembayaran")) { Text("\(store.ledger.allPayments.count)") }
-                LabeledContent(tr("History entries", "Entri riwayat")) { Text("\(store.history.count)") }
-                Button(tr("Show data folder in Finder", "Tampilkan folder data di Finder")) { NSWorkspace.shared.open(Store.defaultDirectory) }
             }
             if let message { Text(message).font(.callout).foregroundStyle(.secondary) }
         }
-        .formStyle(.grouped)
     }
 
     private func exportCSV() {
