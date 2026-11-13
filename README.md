@@ -1,59 +1,68 @@
-# DueBar
+<p align="center"><img src="docs/icon.webp" width="112" alt="DueBar icon"></p>
 
-A macOS menu bar app that reminds you of payments before they're due: bills, subscriptions, installments, insurance, taxes. Local-first, with optional Google sign-in to keep your data in sync across devices (an Android app is planned on the same API).
+<h1 align="center">DueBar</h1>
 
-<p align="center"><img src="Resources/AppIcon.png" width="128" alt="DueBar icon"></p>
+<p align="center">A payment reminder that lives in the macOS menu bar.<br>Bills, subscriptions, installments, insurance and taxes, flagged before they are due.</p>
 
-## What it does
+<p align="center"><img src="docs/screenshot.webp" alt="DueBar's dropdown in dark and light, and the list of all payments"></p>
 
-- **Menu bar at a glance**: just the logo with a red badge counting what is overdue, due today, or inside its reminder window (a payment with reminders at 1, 2 and 7 days counts from 7 days before). Everything else stays under View All.
-- **Dropdown**: leads with *Total Outstanding* as one number in your main currency, then the few payments that are due soon (numbers first, no icons). *View All* opens every payment grouped as Overdue / Today / This week / Later, plus the history. Hover a row for *Mark as paid*; the ⋯ menu has *Skip this time*, *Open payment link*, *Pause*, *Edit* and *Delete*, and every payment can be undone.
-- **One total in your main currency**: pick a main currency (say IDR) and payments in USD or others are converted at the daily rate from [ExchangeRate-API](https://www.exchangerate-api.com); the rates are only fetched while a payment uses another currency.
-- **Payments**: name, amount and currency, category, due date, notes, a payment link, and reminders.
-- **Repeat**: daily, weekly, monthly, every 3 or 6 months, yearly, or custom (every N days/weeks/months/years), ending never, on a date, or after N payments. Monthly bills on the 29th–31st keep their day (Jan 31 → Feb 28 → Mar 31).
-- **Reminders**: local notifications N days before and on the day, at a time you choose, with *Mark as paid* and *Remind in 1 hour* buttons. Late payments are nudged each morning for three days.
-- **Manage everything from Settings → Data**: search, add, edit, pause, mark paid or delete payments, browse finished ones and the history, and export CSV or back up and restore JSON.
-- **Themes** (System, Light, Dark), English and Bahasa Indonesia, start at login.
+## Highlights
 
-## Sync
+- **One number at a glance.** The menu bar shows just the logo with a red badge. Open it for *Total Outstanding* in your main currency, then the payments due soon.
+- **Any currency, one total.** Pay in IDR, USD or anything else; DueBar converts to the currency you choose using daily exchange rates.
+- **Repeats done right.** Daily to yearly or fully custom, with an end date or count. A bill on the 31st stays on the last day of shorter months.
+- **Reminders you can act on.** Notifications before and on the due day, with *Mark as paid* and *Remind me in 1 hour* buttons.
+- **Everything in one place.** Search, add, edit, pause and mark payments as paid from Settings, browse the history, and export CSV or back up and restore JSON.
+- **Private by default.** Your data stays on your Mac. Sign in with Google only if you want to sync devices.
+- **Optional lock.** Hide names and amounts behind a master password, Touch ID, or both.
+- **Light, dark or system**, in English and Bahasa Indonesia.
 
-Sign in with Google (Settings → Account) to sync across devices. Without signing in, nothing ever leaves the Mac.
+## Install
+
+Requires macOS 14 (Sonoma) or later.
+
+- **Installer:** download `DueBar.pkg` from the [latest release](https://github.com/ahmadarif-lab/duebar/releases/latest), open it and click through. DueBar lands in Applications.
+- **Homebrew:** `brew install --cask ahmadarif-lab/tap/duebar`
+- **Disk image:** `DueBar.dmg` from the same release, drag DueBar to Applications.
+
+DueBar is not notarized by Apple yet, so macOS may warn the first time (Homebrew skips the warning): right-click the installer or the app and choose **Open**. DueBar checks for updates itself (Settings → General); with Homebrew, `brew upgrade --cask duebar` works too.
+
+## Sync and privacy
+
+Without signing in, nothing leaves your Mac. Sign in with Google (Settings → Account) to keep payments in sync across devices; an Android app is planned on the same API. DueBar only receives your name, email and profile photo from Google, stores payments encrypted on its server, and *Delete my account and cloud data* removes everything at once. See the [privacy policy](https://apps.ahmadarif.id/duebar/privacy/).
+
+The optional **master password** is saved to your account (as a salted hash, never the password itself) so every device asks for the same one; a forgotten password is reset with a code emailed to your account. **Touch ID** is a per-Mac setting. Both are a screen lock, not file encryption.
+
+How sync works:
 
 ```
-DueBar (macOS) ──┐                          ┌── Google (ID token verified server-side)
+DueBar (macOS) ──┐                          ┌── Google (ID token verified by the server)
                  ├── HTTPS ── sync API ─────┤
-Android (later) ─┘   POST /v1/sync          └── PostgreSQL
+Android (later) ─┘                          └── DueBar server
 ```
 
-- The app signs in with the system browser (OAuth PKCE on a loopback redirect), then trades Google's ID token for its own session. Google's access and refresh tokens are never stored.
-- Every record carries an `updatedAt`; the newest write wins per record. Deleting leaves a tombstone, and marking the same occurrence paid on two devices collapses into one history entry.
-- Dates are calendar days without a time zone, so a bill due on the 5th is due on the 5th wherever you are. Money travels as decimal strings.
-- *Delete my account and cloud data* removes everything on the server.
+- Sign-in uses the system browser (OAuth PKCE on a loopback redirect); Google's access and refresh tokens are never stored.
+- Each record carries an `updatedAt` and the newest write wins. Deleting leaves a tombstone, and paying the same occurrence on two devices collapses into one history entry.
+- Dates are calendar days without a time zone, and money travels as decimal strings.
 
-The wire protocol is documented in [`docs/sync-api.md`](docs/sync-api.md). The server itself is a separate private project.
+The wire protocol is in [`docs/sync-api.md`](docs/sync-api.md). The server is a separate private project.
 
-## Build
+## Build from source
 
 ```sh
-Scripts/run_dev.sh                  # debug run (uses ~/Library/Application Support/DueBar-dev)
-DUEBAR_GOOGLE_CLIENT_ID=… DUEBAR_GOOGLE_CLIENT_SECRET=… Scripts/build_app.sh   # dist/DueBar.app
-swift test                          # model, repeat, merge, parser tests
-Scripts/integration_test.sh         # sync tests against the API server (needs a duebar-api checkout, see the script)
+Scripts/run_dev.sh                  # debug run, with its own data folder
+Scripts/build_app.sh                # dist/DueBar.app
+swift test                          # model, repeat, merge and lock tests
+Scripts/integration_test.sh         # sync tests against the API server (needs a duebar-api checkout)
 ```
 
-Without a client ID the app builds and runs fully local; the sign-in button is disabled.
-
-### Google client ID
-
-Create an OAuth client of type **Desktop app** in Google Cloud Console (project's consent screen with the `openid email profile` scopes), then give the same client ID to the server in `GOOGLE_CLIENT_IDS` so it accepts tokens issued for it. Android uses its own client ID, also added to that list.
-
-### Layout
+Without a Google client ID the app builds and runs fully local, with sign-in disabled. To enable it, create an OAuth client of type **Desktop app** in Google Cloud Console (scopes `openid email profile`), pass it as `DUEBAR_GOOGLE_CLIENT_ID` and `DUEBAR_GOOGLE_CLIENT_SECRET` to `Scripts/build_app.sh`, and add the same ID to the server's `GOOGLE_CLIENT_IDS`.
 
 ```
 Sources/DueKit   Models, repeat rules, ledger merge, agenda, reminder planner, sync client (no UI)
 Sources/DueBar   AppKit + SwiftUI app (status item, dropdown, editor, settings, notifications)
 Tests/DueKitTests
-docs/            Sync protocol
+docs/            Sync protocol, README images
 ```
 
 `DueKit` has no AppKit dependency; the Android app ports its small set of rules (repeat maths, last-write-wins merge) and speaks the same API.
