@@ -420,52 +420,36 @@ private enum PaymentFilter: CaseIterable, Hashable {
 }
 
 /// Every payment in one place: search, add, edit, pause, mark paid or delete without going through
-/// the menu bar, plus the history and the backup tools.
+/// the menu bar, plus the history and the backup tools. Laid out with the same pills and cards as
+/// the dropdown rather than as a system form.
 private struct DataPane: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var rates: RatesService
+    @Environment(\.themeAccent) private var accent
     @State private var filter: PaymentFilter = .active
     @State private var query = ""
     @State private var pendingDelete: Payment?
 
     var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 8) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField("", text: $query, prompt: Text(tr("Search payments", "Cari pembayaran"))).textFieldStyle(.plain).labelsHidden()
-                        if !query.isEmpty {
-                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    searchField
                     Button { Windows.showEditor(payment: nil) } label: {
                         Label(tr("Add", "Tambah"), systemImage: "plus")
+                            .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(Capsule().fill(Brand.gradient))
+                            .shadow(color: Brand.orange.opacity(0.3), radius: 4, y: 2)
                     }
-                    .buttonStyle(.borderedProminent).tint(Brand.orange)
+                    .buttonStyle(.plain)
                 }
-                Picker("", selection: $filter) {
-                    ForEach(PaymentFilter.allCases, id: \.self) { Text("\($0.title) \(count($0))").tag($0) }
-                }
-                .pickerStyle(.segmented).labelsHidden()
-            } header: {
-                Text(tr("Payments", "Pembayaran"))
+                filterPills
+                listCard
+                DataToolsCard()
             }
-
-            Section {
-                if filter == .history {
-                    historyRows
-                } else {
-                    paymentRows
-                }
-            }
-
-            DataSections()
+            .padding(18)
         }
-        .formStyle(.grouped)
-        .controlSize(.small)
         .confirmationDialog(
             tr("Delete \(pendingDelete?.name ?? "this payment")?", "Hapus \(pendingDelete?.name ?? "pembayaran ini")?"),
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
@@ -477,7 +461,80 @@ private struct DataPane: View {
         }
     }
 
+    // MARK: Controls
+
+    private var searchField: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass").font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+            TextField("", text: $query, prompt: Text(tr("Search payments", "Cari pembayaran")))
+                .textFieldStyle(.plain).labelsHidden().font(.system(size: 13))
+            if !query.isEmpty {
+                Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Capsule().fill(Color.primary.opacity(0.06)))
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+    }
+
+    private var filterPills: some View {
+        HStack(spacing: 4) {
+            ForEach(PaymentFilter.allCases, id: \.self) { f in
+                let selected = filter == f
+                Button { filter = f } label: {
+                    HStack(spacing: 5) {
+                        Text(f.title)
+                        Text("\(count(f))").font(.system(size: 11, weight: .semibold)).opacity(selected ? 1 : 0.7)
+                    }
+                    .font(.system(size: 12.5, weight: selected ? .semibold : .regular))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(selected ? accent.opacity(0.16) : Color.clear))
+                    .foregroundStyle(selected ? accent : Color.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     // MARK: Lists
+
+    @ViewBuilder
+    private var listCard: some View {
+        if filter == .history {
+            let events = store.history.filter { matches($0.name) }
+            if events.isEmpty {
+                emptyCard(query.isEmpty ? tr("Paid payments will show up here.", "Pembayaran yang sudah lunas muncul di sini.") : tr("No matches.", "Tidak ada yang cocok."))
+            } else {
+                rows(Array(events.prefix(200)), id: \.id) { HistoryRow(event: $0) }
+            }
+        } else {
+            let list = payments(for: filter).filter { matches($0.name) }
+            if list.isEmpty {
+                emptyCard(emptyText)
+            } else {
+                rows(list, id: \.id) { ManagedPaymentRow(payment: $0, onDelete: { pendingDelete = $0 }) }
+            }
+        }
+    }
+
+    private func rows<Item, Row: View>(_ items: [Item], id: KeyPath<Item, String>, @ViewBuilder row: @escaping (Item) -> Row) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                row(item)
+                if index < items.count - 1 { Divider().padding(.leading, 58) }
+            }
+        }
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .settingsCard()
+    }
+
+    private func emptyCard(_ text: String) -> some View {
+        Text(text).font(.system(size: 13)).foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity).padding(.vertical, 26).padding(.horizontal, 16)
+            .settingsCard()
+    }
 
     private func payments(for filter: PaymentFilter) -> [Payment] {
         let all = store.ledger.allPayments
@@ -497,38 +554,15 @@ private struct DataPane: View {
         filter == .history ? store.history.count : payments(for: filter).count
     }
 
-    private var matches: (String) -> Bool {
+    private func matches(_ name: String) -> Bool {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        return { q.isEmpty || $0.lowercased().contains(q) }
-    }
-
-    @ViewBuilder
-    private var paymentRows: some View {
-        let list = payments(for: filter).filter { matches($0.name) }
-        if list.isEmpty {
-            Text(emptyText).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 10)
-        } else {
-            ForEach(list) { payment in
-                ManagedPaymentRow(payment: payment, onDelete: { pendingDelete = payment })
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var historyRows: some View {
-        let events = store.history.filter { matches($0.name) }
-        if events.isEmpty {
-            Text(query.isEmpty ? tr("Paid payments will show up here.", "Pembayaran yang sudah lunas muncul di sini.") : tr("No matches.", "Tidak ada yang cocok."))
-                .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 10)
-        } else {
-            ForEach(events.prefix(200)) { event in HistoryRow(event: event) }
-        }
+        return q.isEmpty || name.lowercased().contains(q)
     }
 
     private var emptyText: String {
         if !query.isEmpty { return tr("No matches.", "Tidak ada yang cocok.") }
         switch filter {
-        case .active: return tr("No active payments. Add one with the button above.", "Belum ada pembayaran aktif. Tambahkan dengan tombol di atas.")
+        case .active: return tr("No active payments yet. Add one with the button above.", "Belum ada pembayaran aktif. Tambahkan dengan tombol di atas.")
         case .paused: return tr("Nothing is paused.", "Tidak ada yang dijeda.")
         case .finished: return tr("Payments that reach their end land here.", "Pembayaran yang sudah berakhir muncul di sini.")
         case .history: return ""
@@ -541,41 +575,59 @@ private struct ManagedPaymentRow: View {
     @EnvironmentObject var rates: RatesService
     @Environment(\.themeAccent) private var accent
     var payment: Payment
-    var onDelete: () -> Void
+    var onDelete: (Payment) -> Void
+    @State private var hovering = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            CategoryBadge(category: payment.category, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(payment.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                subtitle.font(.system(size: 11.5)).lineLimit(1)
+        HStack(spacing: 12) {
+            CategoryBadge(category: payment.category, size: 38)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(payment.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                subtitle.font(.system(size: 12)).lineLimit(1)
             }
-            Spacer(minLength: 6)
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(Money.format(payment.amount, currency: payment.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
-                if let converted = convertedText { Text(converted).font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit() }
+            Spacer(minLength: 8)
+            // Like the dropdown: on hover the actions take the amount's place.
+            if hovering {
+                HStack(spacing: 2) {
+                    if !payment.archived && !payment.paused {
+                        RowIconButton(symbol: "checkmark.circle", help: tr("Mark as paid", "Tandai lunas"), tint: .green) { store.resolve(payment.id, .paid) }
+                    }
+                    RowIconButton(symbol: "pencil", help: tr("Edit", "Ubah")) { Windows.showEditor(payment: payment) }
+                    Menu { menuItems } label: {
+                        Image(systemName: "ellipsis").font(.system(size: 12, weight: .bold)).foregroundStyle(.secondary).frame(width: 26, height: 26)
+                    }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 26)
+                }
+            } else {
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(Money.format(payment.amount, currency: payment.currency)).font(.system(size: 14, weight: .semibold)).monospacedDigit()
+                    if let converted = convertedText { Text(converted).font(.system(size: 11.5)).foregroundStyle(.secondary).monospacedDigit() }
+                }
             }
-            Button { Windows.showEditor(payment: payment) } label: { Image(systemName: "pencil") }
-                .buttonStyle(.borderless).help(tr("Edit", "Ubah"))
-            Menu {
-                if !payment.archived && !payment.paused {
-                    Button(tr("Mark as paid", "Tandai lunas")) { store.resolve(payment.id, .paid) }
-                    Button(tr("Skip this time", "Lewati kali ini")) { store.resolve(payment.id, .skipped) }
-                }
-                if let url = URL(string: payment.url), !payment.url.isEmpty, url.scheme != nil {
-                    Button(tr("Open payment link", "Buka tautan pembayaran")) { NSWorkspace.shared.open(url) }
-                }
-                if !payment.archived {
-                    Button(payment.paused ? tr("Resume", "Lanjutkan") : tr("Pause", "Jeda")) { store.setPaused(payment.id, !payment.paused) }
-                }
-                Divider()
-                Button(tr("Delete…", "Hapus…"), role: .destructive, action: onDelete)
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 22)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 8).padding(.horizontal, 8)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hovering ? Color.primary.opacity(0.05) : .clear))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture(count: 2) { Windows.showEditor(payment: payment) }
+        .contextMenu { menuItems }
+    }
+
+    @ViewBuilder
+    private var menuItems: some View {
+        if !payment.archived && !payment.paused {
+            Button(tr("Mark as paid", "Tandai lunas")) { store.resolve(payment.id, .paid) }
+            Button(tr("Skip this time", "Lewati kali ini")) { store.resolve(payment.id, .skipped) }
+        }
+        if let url = URL(string: payment.url), !payment.url.isEmpty, url.scheme != nil {
+            Button(tr("Open payment link", "Buka tautan pembayaran")) { NSWorkspace.shared.open(url) }
+        }
+        if !payment.archived {
+            Button(payment.paused ? tr("Resume", "Lanjutkan") : tr("Pause", "Jeda")) { store.setPaused(payment.id, !payment.paused) }
+        }
+        Button(tr("Edit…", "Ubah…")) { Windows.showEditor(payment: payment) }
+        Divider()
+        Button(tr("Delete…", "Hapus…"), role: .destructive) { onDelete(payment) }
     }
 
     @ViewBuilder
@@ -585,10 +637,11 @@ private struct ManagedPaymentRow: View {
         } else if payment.paused {
             Text(tr("Paused · \(DueText.repeatText(payment.repeatRule))", "Dijeda · \(DueText.repeatText(payment.repeatRule))")).foregroundStyle(.secondary)
         } else if let status = payment.status(), let due = payment.nextDue() {
-            HStack(spacing: 4) {
-                Image(systemName: payment.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 10)).foregroundStyle(accent)
+            HStack(spacing: 5) {
+                Image(systemName: payment.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 10.5)).foregroundStyle(accent)
                 Text(DueText.relative(status)).foregroundStyle(color(status))
-                Text("· \(DueText.date(due))").foregroundStyle(.secondary)
+                Text("·").foregroundStyle(.secondary)
+                Text(DueText.date(due)).foregroundStyle(.secondary)
             }
         }
     }
@@ -608,26 +661,46 @@ private struct ManagedPaymentRow: View {
     }
 }
 
+private struct RowIconButton: View {
+    var symbol: String
+    var help: String
+    var tint: Color = .secondary
+    var action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(tint)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(hovering ? Color.primary.opacity(0.1) : .clear))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(help)
+    }
+}
+
 private struct HistoryRow: View {
     @EnvironmentObject var store: Store
     var event: PaymentEvent
 
     var body: some View {
-        HStack(spacing: 10) {
-            CategoryBadge(category: event.category, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+        HStack(spacing: 12) {
+            CategoryBadge(category: event.category, size: 38)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(event.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                 Text("\(event.kind == .paid ? tr("Paid", "Lunas") : tr("Skipped", "Dilewati")) · \(DueText.date(DayStamp(event.resolvedAt)))")
-                    .font(.system(size: 11.5)).foregroundStyle(event.kind == .paid ? Color.green : Color.secondary)
+                    .font(.system(size: 12)).foregroundStyle(event.kind == .paid ? Color.green : Color.secondary)
             }
-            Spacer()
-            Text(Money.format(event.amount, currency: event.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+            Spacer(minLength: 8)
+            Text(Money.format(event.amount, currency: event.currency)).font(.system(size: 14, weight: .semibold)).monospacedDigit()
             if canUndo {
-                Button { store.undo(event.id) } label: { Image(systemName: "arrow.uturn.backward") }
-                    .buttonStyle(.borderless).help(tr("Undo", "Urungkan"))
+                RowIconButton(symbol: "arrow.uturn.backward", help: tr("Undo", "Urungkan")) { store.undo(event.id) }
+            } else {
+                Color.clear.frame(width: 26, height: 26)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 8).padding(.horizontal, 8)
     }
 
     /// Only the latest resolution of a payment can be taken back.
@@ -638,27 +711,33 @@ private struct HistoryRow: View {
 }
 
 /// Export, backup and storage, shown under the account in the Account tab.
-private struct DataSections: View {
+private struct DataToolsCard: View {
     @EnvironmentObject var store: Store
     @State private var message: String?
 
     var body: some View {
-        Section(tr("Data", "Data")) {
-            HStack {
-                Button(tr("Export CSV…", "Ekspor CSV…")) { exportCSV() }
-                Button(tr("Back up…", "Cadangkan…")) { exportBackup() }
-                Button(tr("Restore…", "Pulihkan…")) { restore() }
-            }
-            Text(tr("CSV opens in Numbers or Excel. The JSON backup restores everything, including history.", "CSV bisa dibuka di Numbers atau Excel. Cadangan JSON memulihkan semuanya, termasuk riwayat."))
-                .font(.callout).foregroundStyle(.secondary)
-            LabeledContent(tr("On this Mac", "Di Mac ini")) {
-                HStack(spacing: 10) {
-                    Text(tr("\(store.ledger.allPayments.count) payments · \(store.history.count) history", "\(store.ledger.allPayments.count) pembayaran · \(store.history.count) riwayat"))
-                        .foregroundStyle(.secondary)
-                    Button(tr("Show in Finder", "Tampilkan di Finder")) { NSWorkspace.shared.open(Store.defaultDirectory) }
+        VStack(alignment: .leading, spacing: 8) {
+            Text(tr("Backup & export", "Cadangan & ekspor")).font(.system(size: 14, weight: .semibold)).padding(.horizontal, 4)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    PillButton(title: tr("Export CSV", "Ekspor CSV"), symbol: "tablecells") { exportCSV() }
+                    PillButton(title: tr("Back up", "Cadangkan"), symbol: "arrow.down.doc") { exportBackup() }
+                    PillButton(title: tr("Restore", "Pulihkan"), symbol: "arrow.up.doc") { restore() }
                 }
+                Text(tr("CSV opens in Numbers or Excel. The JSON backup restores everything, including history.", "CSV bisa dibuka di Numbers atau Excel. Cadangan JSON memulihkan semuanya, termasuk riwayat."))
+                    .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Divider()
+                HStack(spacing: 8) {
+                    Text(tr("On this Mac", "Di Mac ini")).font(.system(size: 13))
+                    Spacer()
+                    Text(tr("\(store.ledger.allPayments.count) payments · \(store.history.count) history", "\(store.ledger.allPayments.count) pembayaran · \(store.history.count) riwayat"))
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                    PillButton(title: tr("Show in Finder", "Tampilkan di Finder"), symbol: "folder") { NSWorkspace.shared.open(Store.defaultDirectory) }
+                }
+                if let message { Text(message).font(.system(size: 12)).foregroundStyle(.secondary) }
             }
-            if let message { Text(message).font(.callout).foregroundStyle(.secondary) }
+            .padding(14)
+            .settingsCard()
         }
     }
 

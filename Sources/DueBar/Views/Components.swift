@@ -305,3 +305,45 @@ private struct FieldChip: View {
         .buttonStyle(.plain)
     }
 }
+
+// MARK: - Settings cards
+
+extension View {
+    /// The rounded surface behind grouped rows in the Data tab, matching the dropdown's cards but
+    /// built from system colours so it follows the window's light or dark mode.
+    func settingsCard() -> some View { modifier(SettingsCard()) }
+}
+
+private struct SettingsCard: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.04), radius: 6, y: 2)
+    }
+}
+
+/// A rounded pill button with an icon, for secondary actions.
+struct PillButton: View {
+    @Environment(\.themeAccent) private var accent
+    var title: String
+    var symbol: String
+    var action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(accent)
+                Text(title).font(.system(size: 12.5, weight: .medium))
+            }
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(Capsule().fill(Color.primary.opacity(hovering ? 0.1 : 0.06)))
+            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.1), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+}
