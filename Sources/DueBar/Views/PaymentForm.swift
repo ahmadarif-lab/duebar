@@ -63,12 +63,10 @@ struct PaymentForm: View {
     private var isValid: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && (parsedAmount ?? -1) >= 0 }
     private var isEditing: Bool { original != nil }
 
-    static let size = CGSize(width: 420, height: 560)
+    static let size = CGSize(width: 420, height: 520)
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
             Form {
                 Section {
                     TextField(tr("Name", "Nama"), text: $name, prompt: Text(tr("e.g. Electricity, Netflix, Car installment", "mis. Listrik PLN, Netflix, Cicilan motor")))
@@ -170,20 +168,7 @@ struct PaymentForm: View {
         }
         .frame(width: Self.size.width, height: Self.height)
         .background(Color(nsColor: .windowBackgroundColor))
-        .ignoresSafeArea(.container, edges: .top)
         .onAppear(perform: load)
-    }
-
-    // The traffic lights sit in the top-left corner (full-size content window).
-    private var header: some View {
-        HStack(spacing: 10) {
-            BrandMark(size: 30)
-            Text(isEditing ? tr("Edit payment", "Ubah pembayaran") : tr("New payment", "Pembayaran baru"))
-                .font(.system(size: 14.5, weight: .bold))
-            Spacer()
-        }
-        .padding(.leading, 80).padding(.trailing, 16)
-        .frame(height: 50)
     }
 
     /// "US$14.99 ≈ Rp 242.000" when the amount is in another currency than the main one.

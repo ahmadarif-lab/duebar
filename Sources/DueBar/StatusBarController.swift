@@ -223,18 +223,15 @@ enum Windows {
         editor?.close()
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: PaymentForm.size),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
         window.title = payment == nil ? tr("New Payment", "Pembayaran Baru") : tr("Edit Payment", "Ubah Pembayaran")
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
         window.contentView = host(
             PaymentForm(original: payment, onDone: { window.close() }).environmentObject(context.store).environmentObject(context.rates).themedWindow())
-        // With full-size content the content view is the whole frame.
-        window.setFrame(NSRect(origin: .zero, size: PaymentForm.size), display: false)
+        window.setContentSize(PaymentForm.size)
         window.center()
         track(window)
         editor = window
@@ -247,18 +244,15 @@ enum Windows {
         if settings == nil {
             let window = NSWindow(
                 contentRect: NSRect(origin: .zero, size: SettingsView.size),
-                styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                styleMask: [.titled, .closable, .miniaturizable],
                 backing: .buffered, defer: false
             )
             window.title = tr("DueBar Settings", "Pengaturan DueBar")
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.contentView = host(
                 SettingsView().environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow())
-            // With full-size content the content view is the whole frame, so the frame is the design size.
-            window.setFrame(NSRect(origin: .zero, size: SettingsView.size), display: false)
+            window.setContentSize(SettingsView.size)
             window.center()
             track(window)
             settings = window
@@ -266,9 +260,8 @@ enum Windows {
         present(settings!)
     }
 
-    /// SwiftUI content for a full-size-content window. By default the hosting view adds the title
-    /// bar's height to its ideal size and AppKit grows the window to match once it is shown, which
-    /// leaves an empty strip at the bottom; the window keeps the size we give it instead.
+    /// SwiftUI content for a window. The hosting view would otherwise size the window from the
+    /// content's ideal size (plus the title bar's safe area); the window keeps the size we give it.
     private static func host<V: View>(_ root: V) -> NSHostingView<V> {
         let hosting = NSHostingView(rootView: root)
         hosting.sizingOptions = []

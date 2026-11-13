@@ -42,7 +42,7 @@ struct SettingsView: View {
 
     /// Taller only for UI snapshots (DUEBAR_SETTINGS_HEIGHT), so a whole pane fits one picture.
     static var size: CGSize {
-        CGSize(width: 560, height: CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_SETTINGS_HEIGHT"] ?? "") ?? 540))
+        CGSize(width: 560, height: CGFloat(Double(ProcessInfo.processInfo.environment["DUEBAR_SETTINGS_HEIGHT"] ?? "") ?? 500))
     }
 
     init(initialTab: SettingsTab? = nil) {
@@ -50,44 +50,33 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        HStack(spacing: 0) {
+            sidebar
             Divider()
-            HStack(spacing: 0) {
-                sidebar
-                Divider()
-                pane.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            pane.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: Self.size.width, height: Self.size.height)
         .background(Color(nsColor: .windowBackgroundColor))
-        .ignoresSafeArea(.container, edges: .top)
     }
 
-    // The traffic lights sit in the top-left corner (full-size content window), so the title starts after them.
-    private var header: some View {
-        HStack(spacing: 10) {
-            BrandMark(size: 30)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("DueBar").font(.system(size: 11, weight: .bold))
-                Text(tr("Settings", "Pengaturan")).font(.system(size: 9)).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button { showAbout.toggle() } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "info.circle.fill")
-                    Text(tr("About", "Tentang"))
+    /// The logo and name sit at the bottom of the sidebar; clicking them opens About.
+    private var brand: some View {
+        Button { showAbout.toggle() } label: {
+            HStack(spacing: 10) {
+                BrandMark(size: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("DueBar").font(.system(size: 13.5, weight: .semibold))
+                    Text(Updater.currentVersion.map { "v\($0)" } ?? tr("dev build", "build dev"))
+                        .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
-                .font(.system(size: 9.5, weight: .medium))
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(Capsule().fill(Color.primary.opacity(0.06)))
-                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showAbout, arrowEdge: .bottom) { AboutView() }
+            .padding(6)
+            .contentShape(Rectangle())
         }
-        .padding(.leading, 80.5).padding(.trailing, 15)
-        .frame(height: 47)
+        .buttonStyle(.plain)
+        .help(tr("About DueBar", "Tentang DueBar"))
+        .popover(isPresented: $showAbout, arrowEdge: .trailing) { AboutView() }
     }
 
     private var sidebar: some View {
@@ -96,7 +85,7 @@ struct SettingsView: View {
                 SidebarItem(tab: tab, selected: router.tab == tab) { router.tab = tab }
             }
             Spacer()
-            SidebarIllustration().frame(maxWidth: .infinity, alignment: .leading)
+            brand
         }
         .padding(12)
         .frame(width: 150)
@@ -137,22 +126,6 @@ private struct SidebarItem: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-    }
-}
-
-/// A faded calendar-and-clock in the sidebar's corner.
-private struct SidebarIllustration: View {
-    var body: some View {
-        ZStack {
-            Circle().fill(Brand.orange.opacity(0.10)).frame(width: 99, height: 99).offset(x: -6, y: 4)
-            Circle().fill(Brand.orange.opacity(0.13)).frame(width: 55.5, height: 55.5).offset(x: -22, y: 40)
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 38, weight: .regular))
-                .foregroundStyle(Brand.orange.opacity(0.55))
-                .offset(x: 6, y: -2)
-        }
-        .frame(width: 109, height: 101)
-        .accessibilityHidden(true)
     }
 }
 
