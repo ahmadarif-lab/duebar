@@ -434,7 +434,7 @@ private struct DataPane: View {
                 HStack(spacing: 8) {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                        TextField(tr("Search payments", "Cari pembayaran"), text: $query).textFieldStyle(.plain)
+                        TextField("", text: $query, prompt: Text(tr("Search payments", "Cari pembayaran"))).textFieldStyle(.plain).labelsHidden()
                         if !query.isEmpty {
                             Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
                         }
