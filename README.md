@@ -12,7 +12,7 @@ A macOS menu bar app that reminds you of payments before they're due: bills, sub
 - **Payments**: name, amount and currency, category, due date, notes, a payment link, and reminders.
 - **Repeat**: daily, weekly, monthly, every 3 or 6 months, yearly, or custom (every N days/weeks/months/years), ending never, on a date, or after N payments. Monthly bills on the 29th–31st keep their day (Jan 31 → Feb 28 → Mar 31).
 - **Reminders**: local notifications N days before and on the day, at a time you choose, with *Mark as paid* and *Remind in 1 hour* buttons. Late payments are nudged each morning for three days.
-- **History** by month, CSV export, JSON backup and restore.
+- **Manage everything from Settings → Data**: search, add, edit, pause, mark paid or delete payments, browse finished ones and the history, and export CSV or back up and restore JSON.
 - **Themes** (System, Dark, Light, Midnight, Forest, Sunset), English and Bahasa Indonesia, start at login.
 
 ## Sync

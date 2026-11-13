@@ -22,7 +22,7 @@ enum Snapshot {
                   scheme: scheme, to: dir.appendingPathComponent("history-\(theme).png"))
             let sample = context.store.ledger.allPayments.first { $0.name == "iCloud 2TB" }
             write(PaymentForm(original: sample, onDone: {}).environmentObject(context.store).environmentObject(context.rates).themedWindow(), scheme: scheme, to: dir.appendingPathComponent("form-\(theme).png"))
-            for (name, tab) in [("general", SettingsTab.general), ("account", .account)] {
+            for (name, tab) in [("general", SettingsTab.general), ("data", .data), ("account", .account)] {
                 write(SettingsView(initialTab: tab).environmentObject(context.store).environmentObject(context.sync).environmentObject(context.rates).themedWindow(), scheme: scheme,
                       to: dir.appendingPathComponent("settings-\(name)-\(theme).png"))
             }

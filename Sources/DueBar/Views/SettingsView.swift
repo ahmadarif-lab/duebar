@@ -5,12 +5,13 @@ import UniformTypeIdentifiers
 import UserNotifications
 
 enum SettingsTab: Hashable, CaseIterable {
-    case general, reminders, account
+    case general, reminders, data, account
 
     var title: String {
         switch self {
         case .general: return tr("General", "Umum")
         case .reminders: return tr("Reminders", "Pengingat")
+        case .data: return tr("Data", "Data")
         case .account: return tr("Account", "Akun")
         }
     }
@@ -19,6 +20,7 @@ enum SettingsTab: Hashable, CaseIterable {
         switch self {
         case .general: return "gearshape"
         case .reminders: return "bell"
+        case .data: return "list.bullet.rectangle"
         case .account: return "person"
         }
     }
@@ -103,6 +105,7 @@ struct SettingsView: View {
         switch router.tab {
         case .general: GeneralPane()
         case .reminders: NotificationsPane()
+        case .data: DataPane()
         case .account: AccountPane()
         }
     }
@@ -375,7 +378,6 @@ private struct AccountPane: View {
                     }
                 }
             }
-            DataSections()
             if sync.isSignedIn {
                 Section(tr("Danger zone", "Zona bahaya")) {
                     Button(tr("Delete my account and cloud data…", "Hapus akun dan data cloud…"), role: .destructive) { confirmDelete = true }
@@ -401,6 +403,239 @@ private struct AccountPane: View {
 }
 
 // MARK: - Data
+
+// MARK: - Data (manage payments)
+
+private enum PaymentFilter: CaseIterable, Hashable {
+    case active, paused, finished, history
+
+    var title: String {
+        switch self {
+        case .active: return tr("Active", "Aktif")
+        case .paused: return tr("Paused", "Dijeda")
+        case .finished: return tr("Finished", "Selesai")
+        case .history: return tr("History", "Riwayat")
+        }
+    }
+}
+
+/// Every payment in one place: search, add, edit, pause, mark paid or delete without going through
+/// the menu bar, plus the history and the backup tools.
+private struct DataPane: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
+    @State private var filter: PaymentFilter = .active
+    @State private var query = ""
+    @State private var pendingDelete: Payment?
+
+    var body: some View {
+        Form {
+            Section {
+                HStack(spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField(tr("Search payments", "Cari pembayaran"), text: $query).textFieldStyle(.plain)
+                        if !query.isEmpty {
+                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
+                    Button { Windows.showEditor(payment: nil) } label: {
+                        Label(tr("Add", "Tambah"), systemImage: "plus")
+                    }
+                    .buttonStyle(.borderedProminent).tint(Brand.orange)
+                }
+                Picker("", selection: $filter) {
+                    ForEach(PaymentFilter.allCases, id: \.self) { Text("\($0.title) \(count($0))").tag($0) }
+                }
+                .pickerStyle(.segmented).labelsHidden()
+            } header: {
+                Text(tr("Payments", "Pembayaran"))
+            }
+
+            Section {
+                if filter == .history {
+                    historyRows
+                } else {
+                    paymentRows
+                }
+            }
+
+            DataSections()
+        }
+        .formStyle(.grouped)
+        .controlSize(.small)
+        .confirmationDialog(
+            tr("Delete \(pendingDelete?.name ?? "this payment")?", "Hapus \(pendingDelete?.name ?? "pembayaran ini")?"),
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            presenting: pendingDelete
+        ) { payment in
+            Button(tr("Delete", "Hapus"), role: .destructive) { store.delete(payment.id) }
+        } message: { _ in
+            Text(tr("Its history is removed too, on every device.", "Riwayatnya ikut terhapus, di semua perangkat."))
+        }
+    }
+
+    // MARK: Lists
+
+    private func payments(for filter: PaymentFilter) -> [Payment] {
+        let all = store.ledger.allPayments
+        switch filter {
+        case .active:
+            return all.filter { !$0.archived && !$0.paused }.sorted { ($0.nextDue() ?? .today(), $0.name.lowercased()) < ($1.nextDue() ?? .today(), $1.name.lowercased()) }
+        case .paused:
+            return all.filter { !$0.archived && $0.paused }.sorted { $0.name.lowercased() < $1.name.lowercased() }
+        case .finished:
+            return all.filter(\.archived).sorted { $0.name.lowercased() < $1.name.lowercased() }
+        case .history:
+            return []
+        }
+    }
+
+    private func count(_ filter: PaymentFilter) -> Int {
+        filter == .history ? store.history.count : payments(for: filter).count
+    }
+
+    private var matches: (String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return { q.isEmpty || $0.lowercased().contains(q) }
+    }
+
+    @ViewBuilder
+    private var paymentRows: some View {
+        let list = payments(for: filter).filter { matches($0.name) }
+        if list.isEmpty {
+            Text(emptyText).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 10)
+        } else {
+            ForEach(list) { payment in
+                ManagedPaymentRow(payment: payment, onDelete: { pendingDelete = payment })
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var historyRows: some View {
+        let events = store.history.filter { matches($0.name) }
+        if events.isEmpty {
+            Text(query.isEmpty ? tr("Paid payments will show up here.", "Pembayaran yang sudah lunas muncul di sini.") : tr("No matches.", "Tidak ada yang cocok."))
+                .foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 10)
+        } else {
+            ForEach(events.prefix(200)) { event in HistoryRow(event: event) }
+        }
+    }
+
+    private var emptyText: String {
+        if !query.isEmpty { return tr("No matches.", "Tidak ada yang cocok.") }
+        switch filter {
+        case .active: return tr("No active payments. Add one with the button above.", "Belum ada pembayaran aktif. Tambahkan dengan tombol di atas.")
+        case .paused: return tr("Nothing is paused.", "Tidak ada yang dijeda.")
+        case .finished: return tr("Payments that reach their end land here.", "Pembayaran yang sudah berakhir muncul di sini.")
+        case .history: return ""
+        }
+    }
+}
+
+private struct ManagedPaymentRow: View {
+    @EnvironmentObject var store: Store
+    @EnvironmentObject var rates: RatesService
+    @Environment(\.themeAccent) private var accent
+    var payment: Payment
+    var onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CategoryBadge(category: payment.category, size: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(payment.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                subtitle.font(.system(size: 11.5)).lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(Money.format(payment.amount, currency: payment.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+                if let converted = convertedText { Text(converted).font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit() }
+            }
+            Button { Windows.showEditor(payment: payment) } label: { Image(systemName: "pencil") }
+                .buttonStyle(.borderless).help(tr("Edit", "Ubah"))
+            Menu {
+                if !payment.archived && !payment.paused {
+                    Button(tr("Mark as paid", "Tandai lunas")) { store.resolve(payment.id, .paid) }
+                    Button(tr("Skip this time", "Lewati kali ini")) { store.resolve(payment.id, .skipped) }
+                }
+                if let url = URL(string: payment.url), !payment.url.isEmpty, url.scheme != nil {
+                    Button(tr("Open payment link", "Buka tautan pembayaran")) { NSWorkspace.shared.open(url) }
+                }
+                if !payment.archived {
+                    Button(payment.paused ? tr("Resume", "Lanjutkan") : tr("Pause", "Jeda")) { store.setPaused(payment.id, !payment.paused) }
+                }
+                Divider()
+                Button(tr("Delete…", "Hapus…"), role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 22)
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var subtitle: some View {
+        if payment.archived {
+            Text(tr("Finished · \(DueText.repeatText(payment.repeatRule))", "Selesai · \(DueText.repeatText(payment.repeatRule))")).foregroundStyle(.secondary)
+        } else if payment.paused {
+            Text(tr("Paused · \(DueText.repeatText(payment.repeatRule))", "Dijeda · \(DueText.repeatText(payment.repeatRule))")).foregroundStyle(.secondary)
+        } else if let status = payment.status(), let due = payment.nextDue() {
+            HStack(spacing: 4) {
+                Image(systemName: payment.repeatRule.isRepeating ? "repeat" : "calendar").font(.system(size: 10)).foregroundStyle(accent)
+                Text(DueText.relative(status)).foregroundStyle(color(status))
+                Text("· \(DueText.date(due))").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func color(_ status: DueStatus) -> Color {
+        switch status {
+        case .overdue: return .red
+        case .today: return .orange
+        case .upcoming(let d): return d <= 2 ? .orange : .secondary
+        }
+    }
+
+    private var convertedText: String? {
+        let main = UserDefaults.standard.mainCurrency
+        guard payment.currency != main, let value = rates.rates?.convert(payment.amount, from: payment.currency, to: main) else { return nil }
+        return "≈ " + Money.formatTotal(value, currency: main)
+    }
+}
+
+private struct HistoryRow: View {
+    @EnvironmentObject var store: Store
+    var event: PaymentEvent
+
+    var body: some View {
+        HStack(spacing: 10) {
+            CategoryBadge(category: event.category, size: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                Text("\(event.kind == .paid ? tr("Paid", "Lunas") : tr("Skipped", "Dilewati")) · \(DueText.date(DayStamp(event.resolvedAt)))")
+                    .font(.system(size: 11.5)).foregroundStyle(event.kind == .paid ? Color.green : Color.secondary)
+            }
+            Spacer()
+            Text(Money.format(event.amount, currency: event.currency)).font(.system(size: 13, weight: .semibold)).monospacedDigit()
+            if canUndo {
+                Button { store.undo(event.id) } label: { Image(systemName: "arrow.uturn.backward") }
+                    .buttonStyle(.borderless).help(tr("Undo", "Urungkan"))
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// Only the latest resolution of a payment can be taken back.
+    private var canUndo: Bool {
+        guard let p = store.ledger.payment(event.paymentId), p.resolvedCount > 0 else { return false }
+        return p.occurrence(p.resolvedCount - 1) == event.dueDate
+    }
+}
 
 /// Export, backup and storage, shown under the account in the Account tab.
 private struct DataSections: View {
