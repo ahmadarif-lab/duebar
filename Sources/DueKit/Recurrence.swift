@@ -1,6 +1,10 @@
 import Foundation
 
 public extension Payment {
+    /// How many days ahead the first reminder fires: the largest of its reminder offsets (0 = only
+    /// on the day). A payment counts as due soon from then on.
+    var reminderWindowDays: Int { max(reminderOffsets.filter { $0 >= 0 }.max() ?? 0, 0) }
+
     /// Due day of the nth occurrence (0-based), always computed from the
     /// series start rather than the previous occurrence, so Jan 31 → Feb 28
     /// → Mar 31 doesn't drift to the 28th. nil past the end of the series.

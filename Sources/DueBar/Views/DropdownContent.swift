@@ -101,7 +101,7 @@ private struct HomePage: View {
             OutstandingCard(outstanding: agenda.outstanding(in: UserDefaults.standard.mainCurrency, rates: rates.rates), goAll: goAll)
             if hasPayments {
                 upcoming(agenda)
-                if agenda.overdue.isEmpty && agenda.today.isEmpty && agenda.week.isEmpty { CaughtUpCard() }
+                if agenda.dueSoon.isEmpty { CaughtUpCard(next: agenda.next) }
             } else {
                 EmptyCard(close: close)
             }
@@ -110,11 +110,11 @@ private struct HomePage: View {
 
     @ViewBuilder
     private func upcoming(_ agenda: Agenda) -> some View {
-        let items = Array((agenda.overdue + agenda.today + agenda.week + agenda.later).prefix(3))
+        let items = Array(agenda.dueSoon.prefix(3))
         if !items.isEmpty {
             VStack(spacing: 6.5) {
                 HStack {
-                    Text(tr("Upcoming", "Mendatang")).font(.system(size: 16, weight: .semibold))
+                    Text(tr("Due soon", "Segera jatuh tempo")).font(.system(size: 16, weight: .semibold))
                     Spacer()
                     Button(action: goAll) {
                         HStack(spacing: 3.5) {
@@ -159,7 +159,7 @@ private struct HeaderRow: View {
 
     @ViewBuilder
     private var subtitle: some View {
-        let soon = agenda.today.count + agenda.week.count
+        let soon = agenda.dueSoonCount
         if !agenda.overdue.isEmpty {
             Text(tr("\(agenda.overdue.count) overdue", "\(agenda.overdue.count) terlambat")).foregroundStyle(theme.critical)
         } else if soon > 0 {
@@ -219,20 +219,27 @@ private struct OutstandingCard: View {
 
 private struct CaughtUpCard: View {
     @Environment(\.panelTheme) private var theme
+    var next: AgendaItem?
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 30)).foregroundStyle(theme.positive)
-            VStack(alignment: .leading, spacing: 1.5) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 29)).foregroundStyle(theme.positive)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(tr("All caught up!", "Semua beres!")).font(.system(size: 14, weight: .bold))
-                Text(tr("No more payments due this week.", "Tidak ada lagi pembayaran minggu ini."))
-                    .font(.system(size: 11.5)).foregroundStyle(theme.secondaryText)
+                Text(detail).font(.system(size: 12)).foregroundStyle(theme.secondaryText).lineLimit(2)
             }
             Spacer()
-            Text("🎉").font(.system(size: 26.5))
+            Text("🎉").font(.system(size: 25))
         }
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 15, style: .continuous).fill(theme.positive.opacity(theme.isDark ? 0.16 : 0.13)))
+    }
+
+    /// Nothing is due yet; say what is next so the list doesn't look empty for no reason.
+    private var detail: String {
+        guard let next else { return tr("Nothing is due soon.", "Tidak ada yang segera jatuh tempo.") }
+        return tr("Nothing due soon. Next: \(next.payment.name), \(DueText.relative(next.status).lowercased()).",
+                  "Belum ada yang jatuh tempo. Berikutnya: \(next.payment.name), \(DueText.relative(next.status).lowercased()).")
     }
 }
 

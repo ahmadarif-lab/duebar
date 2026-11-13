@@ -17,8 +17,18 @@ public struct Agenda: Equatable, Sendable {
 
     public var isEmpty: Bool { overdue.isEmpty && today.isEmpty && week.isEmpty && later.isEmpty && paused.isEmpty }
     public var attentionCount: Int { overdue.count + today.count }
-    /// Overdue, due today, or due within the week: the number on the menu bar badge.
-    public var dueSoonCount: Int { overdue.count + today.count + week.count }
+    /// What needs attention now: overdue, due today, or inside the payment's own reminder window.
+    /// A payment due in 18 days with reminders at 1, 2 and 7 days isn't "soon" yet.
+    public var dueSoon: [AgendaItem] { (overdue + today + week + later).filter(Self.isDueSoon) }
+    /// The number on the menu bar badge.
+    public var dueSoonCount: Int { dueSoon.count }
+
+    public static func isDueSoon(_ item: AgendaItem) -> Bool {
+        switch item.status {
+        case .overdue, .today: return true
+        case .upcoming(let days): return days <= item.payment.reminderWindowDays
+        }
+    }
     /// First thing the menu bar should mention.
     public var next: AgendaItem? { (overdue + today + week + later).first }
 
@@ -42,7 +52,7 @@ public struct Agenda: Equatable, Sendable {
     }
 }
 
-/// What is owed soon (overdue, due today, or due within N days) as one number in the main
+/// What is owed soon (overdue, due today, or inside its reminder window) as one number in the main
 /// currency. Amounts in other currencies are converted with the exchange rates; any currency the
 /// rates don't cover is kept apart in `unconverted` so nothing is silently dropped.
 public struct Outstanding: Equatable, Sendable {
@@ -57,10 +67,10 @@ public struct Outstanding: Equatable, Sendable {
 }
 
 public extension Agenda {
-    func outstanding(withinDays days: Int = 30, in currency: String, rates: ExchangeRates?) -> Outstanding {
+    /// The total of everything that is due soon (see `dueSoon`), in `currency`.
+    func outstanding(in currency: String, rates: ExchangeRates?) -> Outstanding {
         var o = Outstanding(currency: currency)
-        for item in overdue + today + week + later {
-            if case .upcoming(let d) = item.status, d > days { continue }
+        for item in dueSoon {
             o.count += 1
             let p = item.payment
             if p.currency == currency {
