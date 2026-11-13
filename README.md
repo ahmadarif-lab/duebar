@@ -19,6 +19,8 @@
 
 ## Lock
 
+<p align="center"><img src="docs/lock.webp" alt="The lock screen with a password field and Touch ID, and the Privacy settings"></p>
+
 Two optional settings, independent of each other (Settings → General → Privacy). Turn on either, or both.
 
 | | Master password | Touch ID |

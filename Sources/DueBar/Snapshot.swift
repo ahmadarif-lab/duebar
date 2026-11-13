@@ -16,6 +16,8 @@ enum Snapshot {
         let lockMode = ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_LOCK"]
         if lockMode == "1" { AppLock.shared.setForPreview(password: "x") }
         if lockMode == "touch" { AppLock.shared.setForPreviewTouchOnly() }
+        // "both": a password and Touch ID, locked; "open": the same but unlocked (for the Settings pane).
+        if lockMode == "both" || lockMode == "open" { AppLock.shared.setForPreview(password: "x", touchID: true, locked: lockMode == "both") }
         let themes = (ProcessInfo.processInfo.environment["DUEBAR_SNAPSHOT_THEMES"] ?? "dark,light").split(separator: ",").map(String.init)
         for theme in themes {
             UserDefaults.standard.set(theme, forKey: SettingsKey.theme)

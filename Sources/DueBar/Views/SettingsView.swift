@@ -895,11 +895,24 @@ struct SettingsNote<Content: View>: View {
     }
 }
 
+/// An on/off switch drawn by SwiftUI: orange when on whether or not the window is active (the system
+/// switch turns grey in a window that is not frontmost, which reads as "off").
 struct SettingsSwitch: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden().tint(Brand.orange)
+        Button { isOn.toggle() } label: {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule().fill(isOn ? Brand.orange : Color.primary.opacity(0.2))
+                Circle().fill(Color.white).shadow(color: .black.opacity(0.25), radius: 1.5, y: 1).padding(2.5)
+            }
+            .frame(width: 42, height: 25)
+            .animation(.easeOut(duration: 0.12), value: isOn)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(isOn ? tr("On", "Aktif") : tr("Off", "Mati"))
+        .accessibilityAddTraits(.isToggle)
     }
 }
 

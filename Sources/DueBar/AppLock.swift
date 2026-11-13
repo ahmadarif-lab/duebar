@@ -234,10 +234,11 @@ final class AppLock: ObservableObject {
     }
 
     /// Snapshots only: show the locked screen without touching the user's real lock file.
-    func setForPreview(password: String) {
+    func setForPreview(password: String, touchID: Bool = false, locked: Bool = true) {
         verifier = PasswordVerifier.make(password: password, iterations: 1_000)
+        previewTouchOnly = touchID
         hasPassword = true
-        isLocked = true
+        isLocked = locked
     }
 }
 
