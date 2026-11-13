@@ -425,7 +425,7 @@ struct FooterBar: View {
             Button {
                 close(); Windows.showSettings(tab: .account)
             } label: {
-                Label(tr("Sign in to sync across devices", "Masuk untuk sinkron antar perangkat"), systemImage: "icloud.slash")
+                Label(tr("Sign in with Google", "Masuk dengan Google"), systemImage: "person.crop.circle")
                     .font(.system(size: 11.5)).foregroundStyle(theme.secondaryText)
             }.buttonStyle(.plain)
         }
