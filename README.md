@@ -14,8 +14,21 @@
 - **Reminders you can act on.** Notifications before and on the due day, with *Mark as paid* and *Remind me in 1 hour* buttons.
 - **Everything in one place.** Search, add, edit, pause and mark payments as paid from Settings, browse the history, and export CSV or back up and restore JSON.
 - **Private by default.** Your data stays on your Mac. Sign in with Google only if you want to sync devices.
-- **Optional lock.** Hide names and amounts behind a master password, Touch ID, or both.
+- **Optional lock.** Hide names and amounts behind a master password, Touch ID, or both ([details](#lock)).
 - **Light, dark or system**, in English and Bahasa Indonesia.
+
+## Lock
+
+Two optional settings, independent of each other (Settings → General → Privacy). Turn on either, or both.
+
+| | Master password | Touch ID |
+|---|---|---|
+| What it does | Names and amounts stay hidden until you type it | Locks DueBar on its own, or opens it faster next to the password |
+| Where it lives | Saved to your account as a salted hash (never the password), so every device asks for the same one, Android included later | This Mac only, never synced |
+| Needs a Google sign-in | Yes, because it is stored on the account | No |
+| If you forget it | A 6-digit code is emailed to your account (two a day at most) and removes the password on every device | Your Mac's login password opens DueBar when Touch ID is the only lock |
+
+While locked, the dropdown, Settings and the editor stay hidden. DueBar locks again when the Mac sleeps or locks, and you choose whether it asks every time it opens or after 5, 15 or 60 minutes away. Reminders leave the amount out while a lock is on. It is a screen lock, not file encryption.
 
 ## Install
 
@@ -30,8 +43,6 @@ DueBar is not notarized by Apple yet, so macOS may warn the first time (Homebrew
 ## Sync and privacy
 
 Without signing in, nothing leaves your Mac. Sign in with Google (Settings → Account) to keep payments in sync across devices; an Android app is planned on the same API. DueBar only receives your name, email and profile photo from Google, stores payments encrypted on its server, and *Delete my account and cloud data* removes everything at once. See the [privacy policy](https://apps.ahmadarif.id/duebar/privacy/).
-
-The optional **master password** is saved to your account (as a salted hash, never the password itself) so every device asks for the same one; a forgotten password is reset with a code emailed to your account. **Touch ID** is a per-Mac setting. Both are a screen lock, not file encryption.
 
 How sync works:
 
