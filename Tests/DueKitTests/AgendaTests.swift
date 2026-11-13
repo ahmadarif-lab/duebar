@@ -59,8 +59,8 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(ReminderPlanner.plan(payments: (1...30).map { pay("p\($0)", 20, rule: RepeatRule(unit: .week)) }, now: now, limit: 10).count, 10)
     }
 
-    func testOutstandingCountsOverdueAndTheNextThirtyDaysPerCurrency() {
-        var usd = pay("usd", 20, amount: 15)
+    func testOutstandingConvertsToTheMainCurrency() {
+        var usd = pay("usd", 20, amount: 10)
         usd.currency = "USD"
         let a = Agenda.make(payments: [
             pay("late", 10, amount: 100), pay("now", 13, amount: 200), pay("soon", 18, amount: 300),
@@ -68,10 +68,26 @@ final class AgendaTests: XCTestCase {
             pay("far", 14, month: 12, amount: 999),       // 31 days out: not outstanding yet
             usd,
         ], today: today, horizonDays: 90)
-        let o = a.outstanding(withinDays: 30)
-        XCTAssertEqual(o.totals["IDR"], 1000)
-        XCTAssertEqual(o.totals["USD"], 15)
+        let rates = ExchangeRates(rates: ["IDR": 16000, "EUR": Decimal(string: "0.9")!])
+        let o = a.outstanding(withinDays: 30, in: "IDR", rates: rates)
+        XCTAssertEqual(o.total, 1000 + 160_000)          // 1000 IDR + 10 USD
         XCTAssertEqual(o.count, 5)
-        XCTAssertEqual(o.currencies, ["IDR", "USD"])
+        XCTAssertTrue(o.includesConverted)
+        XCTAssertTrue(o.unconverted.isEmpty)
+    }
+
+    func testOutstandingKeepsCurrenciesWithoutARateApart() {
+        var usd = pay("usd", 20, amount: 10); usd.currency = "USD"
+        var jpy = pay("jpy", 20, amount: 5000); jpy.currency = "JPY"
+        let a = Agenda.make(payments: [pay("a", 20, amount: 100), usd, jpy], today: today)
+        // No rates at all: only the main currency adds up.
+        let none = a.outstanding(in: "IDR", rates: nil)
+        XCTAssertEqual(none.total, 100)
+        XCTAssertEqual(none.unconverted, ["USD": 10, "JPY": 5000])
+        XCTAssertFalse(none.includesConverted)
+        // Rates that cover USD but not JPY.
+        let some = a.outstanding(in: "IDR", rates: ExchangeRates(rates: ["IDR": 16000]))
+        XCTAssertEqual(some.total, 100 + 160_000)
+        XCTAssertEqual(some.unconverted, ["JPY": 5000])
     }
 }

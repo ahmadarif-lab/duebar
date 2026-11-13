@@ -42,24 +42,35 @@ public struct Agenda: Equatable, Sendable {
     }
 }
 
-/// What is owed soon: everything overdue, due today, or due within the next N days, per currency.
+/// What is owed soon (overdue, due today, or due within N days) as one number in the main
+/// currency. Amounts in other currencies are converted with the exchange rates; any currency the
+/// rates don't cover is kept apart in `unconverted` so nothing is silently dropped.
 public struct Outstanding: Equatable, Sendable {
-    public var totals: [String: Decimal] = [:]
+    public var currency: String
+    public var total: Decimal = 0
     public var count = 0
+    /// True when part of `total` came from a conversion.
+    public var includesConverted = false
+    public var unconverted: [String: Decimal] = [:]
 
-    /// Currencies with the largest total first.
-    public var currencies: [String] {
-        totals.keys.sorted { (totals[$0] ?? 0, $1) > (totals[$1] ?? 0, $0) }
-    }
+    public init(currency: String) { self.currency = currency }
 }
 
 public extension Agenda {
-    func outstanding(withinDays days: Int = 30) -> Outstanding {
-        var o = Outstanding()
+    func outstanding(withinDays days: Int = 30, in currency: String, rates: ExchangeRates?) -> Outstanding {
+        var o = Outstanding(currency: currency)
         for item in overdue + today + week + later {
             if case .upcoming(let d) = item.status, d > days { continue }
-            o.totals[item.payment.currency, default: 0] += item.payment.amount
             o.count += 1
+            let p = item.payment
+            if p.currency == currency {
+                o.total += p.amount
+            } else if let converted = rates?.convert(p.amount, from: p.currency, to: currency) {
+                o.total += converted
+                o.includesConverted = true
+            } else {
+                o.unconverted[p.currency, default: 0] += p.amount
+            }
         }
         return o
     }
