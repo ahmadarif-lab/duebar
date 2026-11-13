@@ -236,8 +236,9 @@ enum Windows {
         present(window)
     }
 
-    static func showSettings() {
+    static func showSettings(tab: SettingsTab = .general) {
         guard let context = AppContext.shared else { return }
+        SettingsRouter.shared.tab = tab
         if settings == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 560, height: 600),

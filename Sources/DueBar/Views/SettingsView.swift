@@ -6,15 +6,25 @@ import UserNotifications
 
 enum SettingsTab: Hashable { case general, reminders, account }
 
+/// Which tab the Settings window shows. Shared so other parts of the app (the "Sign in" link
+/// in the dropdown) can open it on a given tab, even while the window is already open.
+@MainActor
+final class SettingsRouter: ObservableObject {
+    static let shared = SettingsRouter()
+    @Published var tab: SettingsTab = .general
+}
+
 struct SettingsView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var sync: SyncService
-    @State private var selection: SettingsTab
+    @ObservedObject private var router = SettingsRouter.shared
 
-    init(initialTab: SettingsTab = .general) { _selection = State(initialValue: initialTab) }
+    init(initialTab: SettingsTab? = nil) {
+        if let initialTab { SettingsRouter.shared.tab = initialTab }
+    }
 
     var body: some View {
-        TabView(selection: $selection) {
+        TabView(selection: $router.tab) {
             GeneralPane().tabItem { Label(tr("General", "Umum"), systemImage: "gearshape") }.tag(SettingsTab.general)
             NotificationsPane().tabItem { Label(tr("Reminders", "Pengingat"), systemImage: "bell") }.tag(SettingsTab.reminders)
             AccountPane().tabItem { Label(tr("Account", "Akun"), systemImage: "person.crop.circle") }.tag(SettingsTab.account)
