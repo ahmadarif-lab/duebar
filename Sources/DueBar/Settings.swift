@@ -4,7 +4,6 @@ import SwiftUI
 enum SettingsKey {
     static let theme = "theme"
     static let language = "language"
-    static let menuBarStyle = "menuBarStyle"
     static let defaultCurrency = "defaultCurrency"
     static let defaultOffsets = "defaultOffsets"
     static let reminderMinute = "reminderMinute"
@@ -16,17 +15,6 @@ enum SettingsKey {
     static let autoCheckUpdates = "autoCheckUpdates"
 }
 
-enum MenuBarStyle: String, CaseIterable, Identifiable {
-    case icon, next
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .icon: return tr("Icon with count", "Ikon dengan jumlah")
-        case .next: return tr("Next payment", "Pembayaran berikutnya")
-        }
-    }
-}
-
 extension UserDefaults {
     static func registerDueBarDefaults() {
         // The coloured presets (Midnight, Forest, Sunset) are gone; anyone who picked one follows the system.
@@ -36,7 +24,6 @@ extension UserDefaults {
         standard.register(defaults: [
             SettingsKey.theme: PanelTheme.systemID,
             SettingsKey.language: "system",
-            SettingsKey.menuBarStyle: MenuBarStyle.next.rawValue,
             SettingsKey.defaultCurrency: Locale.current.currency?.identifier ?? "IDR",
             SettingsKey.defaultOffsets: "1,0",
             SettingsKey.reminderMinute: 9 * 60,

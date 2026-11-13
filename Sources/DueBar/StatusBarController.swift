@@ -24,7 +24,7 @@ final class StatusBarController: NSObject {
             button.target = self
             button.action = #selector(clicked(_:))
             button.sendAction(on: [.leftMouseDown, .rightMouseDown])
-            button.imagePosition = .imageLeading
+            button.imagePosition = .imageOnly
         }
         context.store.objectWillChange
             .debounce(for: .milliseconds(30), scheduler: RunLoop.main)
@@ -41,20 +41,10 @@ final class StatusBarController: NSObject {
 
     private func refresh() {
         guard let button = statusItem.button else { return }
-        let agenda = context.store.agenda
-        let style = MenuBarStyle(rawValue: UserDefaults.standard.string(forKey: SettingsKey.menuBarStyle) ?? "") ?? .next
-        button.image = Self.icon(badge: agenda.dueSoonCount)
+        let soon = context.store.agenda.dueSoonCount
+        button.image = Self.icon(badge: soon)
         button.contentTintColor = nil
-
-        var title = ""
-        if style == .next, let next = agenda.next, Self.isNear(next) {
-            let name = next.payment.name.count > 16 ? String(next.payment.name.prefix(15)) + "…" : next.payment.name
-            title = " \(name) · \(Self.short(next.status))"
-        }
-        button.attributedTitle = NSAttributedString(string: title, attributes: [
-            .font: NSFont.menuBarFont(ofSize: 0),
-        ])
-        button.setAccessibilityLabel(tr("DueBar, \(agenda.dueSoonCount) payments due soon", "DueBar, \(agenda.dueSoonCount) pembayaran segera jatuh tempo"))
+        button.setAccessibilityLabel(tr("DueBar, \(soon) payments due soon", "DueBar, \(soon) pembayaran segera jatuh tempo"))
     }
 
     /// The logo with a red count badge at its top right, as in the design. Coloured rather than a
@@ -87,19 +77,6 @@ final class StatusBarController: NSObject {
         }
         image.isTemplate = false
         return image
-    }
-
-    private static func isNear(_ item: AgendaItem) -> Bool {
-        if case .upcoming(let d) = item.status { return d <= 7 }
-        return true
-    }
-
-    private static func short(_ status: DueStatus) -> String {
-        switch status {
-        case .overdue(let d): return tr("\(d)d late", "telat \(d)h")
-        case .today: return tr("today", "hari ini")
-        case .upcoming(let d): return d == 1 ? tr("tomorrow", "besok") : tr("in \(d)d", "\(d)h lagi")
-        }
     }
 
     // MARK: Clicks

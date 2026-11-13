@@ -182,7 +182,6 @@ private struct GeneralPane: View {
     @EnvironmentObject var rates: RatesService
     @AppStorage(SettingsKey.language) private var language = "system"
     @AppStorage(SettingsKey.theme) private var theme = PanelTheme.systemID
-    @AppStorage(SettingsKey.menuBarStyle) private var style = MenuBarStyle.next.rawValue
     @AppStorage(SettingsKey.defaultCurrency) private var currency = "IDR"
     @AppStorage(SettingsKey.showInDock) private var showInDock = false
     @AppStorage(SettingsKey.horizonDays) private var horizon = 60
@@ -194,10 +193,7 @@ private struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Section(tr("Menu bar", "Menu bar")) {
-                Picker(tr("Show", "Tampilkan"), selection: $style) {
-                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0.rawValue) }
-                }
+            Section(tr("Upcoming", "Mendatang")) {
                 Picker(tr("Upcoming list reaches", "Daftar mendatang sampai"), selection: $horizon) {
                     Text(tr("30 days", "30 hari")).tag(30)
                     Text(tr("60 days", "60 hari")).tag(60)
